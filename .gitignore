@@ -1,5 +1,1 @@
--e node_modules/
-dist/
-.searchgrep-cache/
-*.tgz
-.DS_Store
+/target

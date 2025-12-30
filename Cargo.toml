@@ -1,0 +1,74 @@
+[package]
+name = "searchgrep"
+version = "0.1.0"
+edition = "2021"
+description = "Semantic grep for the AI era - natural language code search"
+license = "MIT"
+authors = ["searchgrep"]
+
+[[bin]]
+name = "searchgrep"
+path = "src/main.rs"
+
+[dependencies]
+# CLI
+clap = { version = "4.4", features = ["derive", "env"] }
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# HTTP client for API calls
+reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# File system
+walkdir = "2.4"
+notify = "6.1"
+ignore = "0.4"
+
+# Hashing
+sha2 = "0.10"
+hex = "0.4"
+
+# Terminal UI
+colored = "2.1"
+indicatif = "0.17"
+terminal_size = "0.3"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Directories
+dirs = "5.0"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Regex for code patterns
+regex = "1.10"
+
+# Candle for local embeddings with Accelerate (Apple Silicon optimized CPU)
+candle-core = { version = "0.8", features = ["accelerate"] }
+candle-nn = "0.8"
+candle-transformers = "0.8"
+
+# Hugging Face Hub for model downloads
+hf-hub = "0.4"
+
+# Tokenizer
+tokenizers = "0.15"
+
+# Math operations
+ndarray = "0.16"
+
+# MCP Server (JSON-RPC over stdio)
+async-trait = "0.1"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
