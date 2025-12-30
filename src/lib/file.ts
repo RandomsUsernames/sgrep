@@ -1,6 +1,13 @@
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync, statSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  statSync,
+  readdirSync,
+  createReadStream,
+} from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { createInterface } from "node:readline";
 import ignore, { type Ignore } from "ignore";
 import { isText } from "istextorbinary";
 import { loadConfig } from "./config.js";
@@ -102,6 +109,8 @@ export interface FileSystemOptions {
   maxFileSize?: number;
   maxFileCount?: number;
   additionalIgnore?: string[];
+  streamLargeFiles?: boolean;
+  largeFileThreshold?: number;
 }
 
 export class FileSystem {
@@ -110,6 +119,8 @@ export class FileSystem {
   private maxFileCount: number;
   private ignoreFilter: Ignore;
   private isGitRepo: boolean;
+  private streamLargeFiles: boolean;
+  private largeFileThreshold: number;
 
   constructor(options: FileSystemOptions = {}) {
     const config = loadConfig(options.cwd);
@@ -119,6 +130,8 @@ export class FileSystem {
     this.maxFileCount = options.maxFileCount ?? config.maxFileCount;
     this.isGitRepo = this.checkGitRepo();
     this.ignoreFilter = this.buildIgnoreFilter(options.additionalIgnore);
+    this.streamLargeFiles = options.streamLargeFiles ?? false;
+    this.largeFileThreshold = options.largeFileThreshold ?? 50 * 1024; // 50KB default
   }
 
   private checkGitRepo(): boolean {
@@ -309,6 +322,93 @@ export class FileSystem {
 
   isGit(): boolean {
     return this.isGitRepo;
+  }
+
+  /**
+   * Stream read a large file line by line
+   * More memory efficient for large files
+   */
+  async streamReadFile(
+    filePath: string,
+    maxLines: number = 10000,
+  ): Promise<{ content: string; truncated: boolean }> {
+    const absolutePath = resolve(this.cwd, filePath);
+    const lines: string[] = [];
+    let truncated = false;
+
+    return new Promise((resolve, reject) => {
+      const stream = createReadStream(absolutePath, { encoding: "utf-8" });
+      const rl = createInterface({
+        input: stream,
+        crlfDelay: Infinity,
+      });
+
+      rl.on("line", (line) => {
+        if (lines.length < maxLines) {
+          lines.push(line);
+        } else {
+          truncated = true;
+          rl.close();
+          stream.destroy();
+        }
+      });
+
+      rl.on("close", () => {
+        resolve({ content: lines.join("\n"), truncated });
+      });
+
+      rl.on("error", (error) => {
+        reject(error);
+      });
+    });
+  }
+
+  /**
+   * Read file with automatic streaming for large files
+   */
+  async smartReadFile(filePath: string): Promise<FileInfo | null> {
+    const absolutePath = resolve(this.cwd, filePath);
+    const relativePath = relative(this.cwd, absolutePath);
+
+    try {
+      const stat = statSync(absolutePath);
+      if (!stat.isFile()) return null;
+
+      // Use streaming for large files if enabled
+      if (this.streamLargeFiles && stat.size > this.largeFileThreshold) {
+        const { content, truncated } = await this.streamReadFile(absolutePath);
+
+        if (!isText(filePath, Buffer.from(content.slice(0, 1000)))) {
+          return null;
+        }
+
+        return {
+          path: relativePath,
+          absolutePath,
+          content,
+          size: stat.size,
+          lastModified: stat.mtimeMs,
+          lines: content.split("\n").length,
+        };
+      }
+
+      // Regular read for small files
+      const buffer = readFileSync(absolutePath);
+      if (!isText(filePath, buffer)) return null;
+
+      const content = buffer.toString("utf-8");
+
+      return {
+        path: relativePath,
+        absolutePath,
+        content,
+        size: stat.size,
+        lastModified: stat.mtimeMs,
+        lines: content.split("\n").length,
+      };
+    } catch {
+      return null;
+    }
   }
 }
 
