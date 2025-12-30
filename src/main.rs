@@ -622,17 +622,17 @@ async fn main() -> Result<()> {
                         serde_json::json!({})
                     };
 
-                    let home_str = home.to_string_lossy().to_string();
+                    // Use "/" root project for global availability across all projects
                     if config.get("projects").is_none() {
                         config["projects"] = serde_json::json!({});
                     }
-                    if config["projects"].get(&home_str).is_none() {
-                        config["projects"][&home_str] = serde_json::json!({});
+                    if config["projects"].get("/").is_none() {
+                        config["projects"]["/"] = serde_json::json!({});
                     }
-                    if config["projects"][&home_str].get("mcpServers").is_none() {
-                        config["projects"][&home_str]["mcpServers"] = serde_json::json!({});
+                    if config["projects"]["/"].get("mcpServers").is_none() {
+                        config["projects"]["/"]["mcpServers"] = serde_json::json!({});
                     }
-                    config["projects"][&home_str]["mcpServers"]["searchgrep"] = mcp_config;
+                    config["projects"]["/"]["mcpServers"]["searchgrep"] = mcp_config;
 
                     let content = serde_json::to_string_pretty(&config)?;
                     std::fs::write(&config_path, content)?;
@@ -954,10 +954,8 @@ async fn main() -> Result<()> {
                     serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
 
                 let removed = if config_type == "claude" {
-                    let home_str = home.to_string_lossy().to_string();
-                    if let Some(servers) =
-                        config["projects"][&home_str]["mcpServers"].as_object_mut()
-                    {
+                    // Use "/" root project for global availability
+                    if let Some(servers) = config["projects"]["/"]["mcpServers"].as_object_mut() {
                         servers.remove("searchgrep").is_some()
                     } else {
                         false
@@ -1055,17 +1053,17 @@ async fn main() -> Result<()> {
                     serde_json::json!({})
                 };
 
-                let home_str = home.to_string_lossy().to_string();
+                // Use "/" root project for global availability across all projects
                 if config.get("projects").is_none() {
                     config["projects"] = serde_json::json!({});
                 }
-                if config["projects"].get(&home_str).is_none() {
-                    config["projects"][&home_str] = serde_json::json!({});
+                if config["projects"].get("/").is_none() {
+                    config["projects"]["/"] = serde_json::json!({});
                 }
-                if config["projects"][&home_str].get("mcpServers").is_none() {
-                    config["projects"][&home_str]["mcpServers"] = serde_json::json!({});
+                if config["projects"]["/"].get("mcpServers").is_none() {
+                    config["projects"]["/"]["mcpServers"] = serde_json::json!({});
                 }
-                config["projects"][&home_str]["mcpServers"]["searchgrep"] = serde_json::json!({
+                config["projects"]["/"]["mcpServers"]["searchgrep"] = serde_json::json!({
                     "command": searchgrep_path,
                     "args": ["mcp-server"],
                     "env": {}
