@@ -6,7 +6,7 @@ mod core;
 mod mcp;
 pub mod ui;
 
-use commands::{config, search, status, watch};
+use commands::{clean, config, search, status, watch};
 
 #[derive(Parser)]
 #[command(name = "searchgrep")]
@@ -152,6 +152,21 @@ enum Commands {
     #[command(name = "mcp-server")]
     McpServer,
 
+    /// Remove stored indexes for privacy/storage management
+    Clean {
+        /// List all indexes and their sizes
+        #[arg(short, long)]
+        list: bool,
+
+        /// Remove ALL indexes
+        #[arg(short, long)]
+        all: bool,
+
+        /// Remove a specific index by name
+        #[arg(short, long)]
+        store: Option<String>,
+    },
+
     /// Ask a question about your codebase
     #[command(alias = "a")]
     Ask {
@@ -260,6 +275,9 @@ async fn main() -> Result<()> {
         Some(Commands::McpServer) => {
             let mut server = mcp::McpServer::new();
             server.run()?;
+        }
+        Some(Commands::Clean { list, all, store }) => {
+            clean::run(clean::CleanOptions { list, all, store }).await?;
         }
         Some(Commands::Ask {
             question,

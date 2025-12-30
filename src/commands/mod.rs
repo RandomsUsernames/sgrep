@@ -1,3 +1,4 @@
+pub mod clean;
 pub mod config;
 pub mod search;
 pub mod status;
