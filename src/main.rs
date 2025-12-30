@@ -897,22 +897,22 @@ async fn main() -> Result<()> {
             };
 
             for tool_name in tools {
-                let (config_path, is_claude) = match tool_name {
-                    "claude" => (home.join(".claude.json"), true),
-                    "opencode" => (home.join(".opencode/mcp.json"), false),
-                    "cursor" => (home.join(".cursor/mcp.json"), false),
-                    "windsurf" => (home.join(".windsurf/mcp.json"), false),
-                    "codex" => (home.join(".codex/mcp.json"), false),
-                    "gemini" => (home.join(".gemini/mcp.json"), false),
-                    "cody" => (home.join(".cody/mcp.json"), false),
-                    "continue" => (home.join(".continue/mcp.json"), false),
-                    "aider" => (home.join(".aider/mcp.json"), false),
-                    "zed" => (home.join(".zed/mcp.json"), false),
-                    "acp" => (home.join(".acp/mcp.json"), false),
-                    "droid" => (home.join(".droid/mcp.json"), false),
-                    "amp" => (home.join(".amp/mcp.json"), false),
-                    "roo" => (home.join(".roo-code/mcp.json"), false),
-                    "cline" => (home.join(".cline/mcp.json"), false),
+                let (config_path, config_type) = match tool_name {
+                    "claude" => (home.join(".claude/mcp_servers.json"), "mcpServers"),
+                    "cursor" => (home.join(".cursor/mcp.json"), "mcpServers"),
+                    "windsurf" => (home.join(".codeium/windsurf/mcp_config.json"), "mcpServers"),
+                    "codex" => (home.join(".codex/mcp.json"), "mcpServers"),
+                    "opencode" => (home.join(".opencode/mcp.json"), "mcpServers"),
+                    "zed" => (home.join(".config/zed/settings.json"), "context_servers"),
+                    "continue" => (home.join(".continue/config.json"), "experimental.modelContextProtocolServers"),
+                    "cline" => (home.join("Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json"), "mcpServers"),
+                    "roo" => (home.join("Library/Application Support/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json"), "mcpServers"),
+                    "amp" => (home.join(".amp/amp.yaml"), "mcpServers"),
+                    "gemini" => (home.join(".gemini/settings.json"), "mcpServers"),
+                    "cody" => (home.join("Library/Application Support/Code/User/globalStorage/sourcegraph.cody-ai/cody_mcp_settings.json"), "mcpServers"),
+                    "aider" => (home.join(".aider/mcp.json"), "mcpServers"),
+                    "droid" => (home.join(".droid/mcp.json"), "mcpServers"),
+                    "acp" => (home.join(".acp/mcp.json"), "mcpServers"),
                     _ => continue,
                 };
 
@@ -924,12 +924,21 @@ async fn main() -> Result<()> {
                 let mut config: serde_json::Value =
                     serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
 
-                let removed = if is_claude {
-                    let home_str = home.to_string_lossy().to_string();
-                    if let Some(servers) =
-                        config["projects"][&home_str]["mcpServers"].as_object_mut()
-                    {
+                let removed = if config_type == "context_servers" {
+                    if let Some(servers) = config["context_servers"].as_object_mut() {
                         servers.remove("searchgrep").is_some()
+                    } else {
+                        false
+                    }
+                } else if config_type == "experimental.modelContextProtocolServers" {
+                    if let Some(arr) =
+                        config["experimental"]["modelContextProtocolServers"].as_array_mut()
+                    {
+                        let len_before = arr.len();
+                        arr.retain(|v| {
+                            v.get("name").and_then(|n| n.as_str()) != Some("searchgrep")
+                        });
+                        arr.len() < len_before
                     } else {
                         false
                     }
@@ -999,7 +1008,13 @@ async fn main() -> Result<()> {
                     .map(|p| p.to_string_lossy().to_string())
                     .unwrap_or_else(|_| "searchgrep".to_string());
 
-                let config_path = home.join(".claude.json");
+                let config_path = home.join(".claude/mcp_servers.json");
+
+                // Create directory if needed
+                if let Some(parent) = config_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+
                 let mut config: serde_json::Value = if config_path.exists() {
                     let content = std::fs::read_to_string(&config_path)?;
                     serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
@@ -1007,17 +1022,10 @@ async fn main() -> Result<()> {
                     serde_json::json!({})
                 };
 
-                let home_str = home.to_string_lossy().to_string();
-                if config.get("projects").is_none() {
-                    config["projects"] = serde_json::json!({});
+                if config.get("mcpServers").is_none() {
+                    config["mcpServers"] = serde_json::json!({});
                 }
-                if config["projects"].get(&home_str).is_none() {
-                    config["projects"][&home_str] = serde_json::json!({});
-                }
-                if config["projects"][&home_str].get("mcpServers").is_none() {
-                    config["projects"][&home_str]["mcpServers"] = serde_json::json!({});
-                }
-                config["projects"][&home_str]["mcpServers"]["searchgrep"] = serde_json::json!({
+                config["mcpServers"]["searchgrep"] = serde_json::json!({
                     "command": searchgrep_path,
                     "args": ["mcp-server"],
                     "env": {}
