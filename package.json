@@ -1,6 +1,6 @@
 {
   "name": "searchgrep",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Semantic grep for the AI era - natural language code search",
   "type": "module",
   "main": "dist/index.js",
@@ -10,10 +10,12 @@
   },
   "files": [
     "dist",
+    "scripts/postinstall.js",
     "README.md"
   ],
   "scripts": {
     "build": "tsc && chmod +x dist/index.js dist/mcp.js",
+    "postinstall": "node scripts/postinstall.js || true",
     "dev": "bun run src/index.ts",
     "typecheck": "tsc --noEmit",
     "format": "biome format --write .",
@@ -26,7 +28,9 @@
     "semantic-search",
     "ai",
     "code-search",
-    "embeddings"
+    "embeddings",
+    "mcp",
+    "claude"
   ],
   "author": "",
   "license": "MIT",

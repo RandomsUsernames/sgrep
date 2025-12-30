@@ -6,6 +6,8 @@ import { searchCommand } from "./commands/search.js";
 import { watchCommand } from "./commands/watch.js";
 import { configCommand } from "./commands/config.js";
 import { statusCommand } from "./commands/status.js";
+import { indexCommand } from "./commands/index.js";
+import { claudeCommand } from "./commands/claude.js";
 
 const program = new Command();
 
@@ -81,6 +83,23 @@ program
   .option("--files", "List indexed files", false)
   .action(async (options) => {
     await statusCommand(options);
+  });
+
+program
+  .command("index")
+  .alias("i")
+  .description("Index your codebase for semantic search")
+  .argument("[path]", "Path to index (defaults to current directory)")
+  .option("--store <name>", "Use alternative store name")
+  .action(async (path, options) => {
+    await indexCommand(path, options);
+  });
+
+program
+  .command("claude")
+  .description("Register searchgrep MCP server with Claude")
+  .action(async () => {
+    await claudeCommand();
   });
 
 program
