@@ -50,6 +50,7 @@ thiserror = "1.0"
 
 # Directories
 dirs = "5.0"
+which = "6.0"
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }

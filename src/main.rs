@@ -219,6 +219,14 @@ enum Commands {
     /// Build and install searchgrep to ~/.cargo/bin
     Install,
 
+    /// Setup MCP integration for AI coding tools
+    #[command(alias = "mcp")]
+    Setup {
+        /// Tool to configure: claude, opencode, cursor, windsurf, or all
+        #[arg(default_value = "interactive")]
+        tool: String,
+    },
+
     /// Ask a question about your codebase
     #[command(alias = "a")]
     Ask {
@@ -431,6 +439,113 @@ async fn main() -> Result<()> {
                 install_path.display()
             );
             println!("   Run {} to verify", "searchgrep --version".cyan());
+        }
+        Some(Commands::Setup { tool }) => {
+            use anyhow::Context;
+            use colored::Colorize;
+            use std::io::{self, Write};
+
+            let home = dirs::home_dir().context("Could not find home directory")?;
+
+            // Find searchgrep binary path
+            let searchgrep_path = which::which("searchgrep")
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| "searchgrep".to_string());
+
+            let tools: Vec<&str> = match tool.as_str() {
+                "interactive" => {
+                    println!("{}", "searchgrep MCP Setup".cyan().bold());
+                    println!();
+                    println!("Select AI tools to configure:");
+                    println!("  {} Claude Code (claude)", "1.".bold());
+                    println!("  {} OpenCode", "2.".bold());
+                    println!("  {} Cursor", "3.".bold());
+                    println!("  {} Windsurf", "4.".bold());
+                    println!("  {} All of the above", "5.".bold());
+                    println!();
+                    print!("Enter choice (1-5): ");
+                    io::stdout().flush()?;
+
+                    let mut input = String::new();
+                    io::stdin().read_line(&mut input)?;
+
+                    match input.trim() {
+                        "1" => vec!["claude"],
+                        "2" => vec!["opencode"],
+                        "3" => vec!["cursor"],
+                        "4" => vec!["windsurf"],
+                        "5" => vec!["claude", "opencode", "cursor", "windsurf"],
+                        _ => {
+                            println!("{} Invalid choice", "✗".red());
+                            return Ok(());
+                        }
+                    }
+                }
+                "all" => vec!["claude", "opencode", "cursor", "windsurf"],
+                "claude" => vec!["claude"],
+                "opencode" => vec!["opencode"],
+                "cursor" => vec!["cursor"],
+                "windsurf" => vec!["windsurf"],
+                _ => {
+                    println!("{} Unknown tool: {}", "✗".red(), tool);
+                    println!("Available: claude, opencode, cursor, windsurf, all");
+                    return Ok(());
+                }
+            };
+
+            let mcp_config = serde_json::json!({
+                "command": searchgrep_path,
+                "args": ["mcp-server"],
+                "env": {}
+            });
+
+            for tool_name in tools {
+                let config_path = match tool_name {
+                    "claude" => home.join(".claude/mcp_servers.json"),
+                    "opencode" => home.join(".opencode/mcp.json"),
+                    "cursor" => home.join(".cursor/mcp.json"),
+                    "windsurf" => home.join(".windsurf/mcp.json"),
+                    _ => continue,
+                };
+
+                // Create directory if needed
+                if let Some(parent) = config_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+
+                // Load or create config
+                let mut config: serde_json::Value = if config_path.exists() {
+                    let content = std::fs::read_to_string(&config_path)?;
+                    serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+                } else {
+                    serde_json::json!({})
+                };
+
+                // Add searchgrep to mcpServers
+                if config.get("mcpServers").is_none() {
+                    config["mcpServers"] = serde_json::json!({});
+                }
+                config["mcpServers"]["searchgrep"] = mcp_config.clone();
+
+                // Write config
+                let content = serde_json::to_string_pretty(&config)?;
+                std::fs::write(&config_path, content)?;
+
+                println!(
+                    "{} Configured {} at {}",
+                    "✓".green().bold(),
+                    tool_name.cyan(),
+                    config_path.display()
+                );
+            }
+
+            println!();
+            println!("{}", "Restart your AI tool to use searchgrep.".yellow());
+            println!(
+                "Available MCP tools: {}, {}",
+                "semantic_search".cyan(),
+                "index_directory".cyan()
+            );
         }
         Some(Commands::Ask {
             question,
