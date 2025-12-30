@@ -6,7 +6,7 @@ mod core;
 mod mcp;
 pub mod ui;
 
-use commands::{clean, compile, config, search, status, watch};
+use commands::{clean, compile, config, index, search, status, watch};
 
 #[derive(Parser)]
 #[command(name = "searchgrep")]
@@ -181,6 +181,44 @@ enum Commands {
         minimal: bool,
     },
 
+    /// Fast parallel indexing with multiple optimization strategies
+    #[command(alias = "i")]
+    Index {
+        /// Path to index (defaults to current directory)
+        path: Option<String>,
+
+        /// Use alternative store name
+        #[arg(long)]
+        store: Option<String>,
+
+        /// Fast mode - BM25 only, instant indexing (no embeddings)
+        #[arg(long)]
+        fast: bool,
+
+        /// Balanced mode - BM25 + embeddings (default)
+        #[arg(long)]
+        balanced: bool,
+
+        /// Quality mode - best embeddings, slower
+        #[arg(long)]
+        quality: bool,
+
+        /// Force re-index all files (ignore cache)
+        #[arg(short, long)]
+        force: bool,
+
+        /// Number of threads (0 = auto-detect)
+        #[arg(short, long, default_value = "0")]
+        threads: usize,
+
+        /// Batch size for embedding requests
+        #[arg(short, long, default_value = "50")]
+        batch_size: usize,
+    },
+
+    /// Build and install searchgrep to ~/.cargo/bin
+    Install,
+
     /// Ask a question about your codebase
     #[command(alias = "a")]
     Ask {
@@ -304,6 +342,95 @@ async fn main() -> Result<()> {
                 minimal,
             })
             .await?;
+        }
+        Some(Commands::Index {
+            path,
+            store,
+            fast,
+            balanced,
+            quality,
+            force,
+            threads,
+            batch_size,
+        }) => {
+            index::run(index::IndexOptions {
+                path,
+                store,
+                fast,
+                balanced,
+                quality,
+                force,
+                threads,
+                batch_size,
+            })
+            .await?;
+        }
+        Some(Commands::Install) => {
+            use anyhow::Context;
+            use colored::Colorize;
+            use std::process::Command;
+
+            // Known source location
+            let home = dirs::home_dir().context("Could not find home directory")?;
+            let known_path = home.join("extras/stuff/searchgrep-rs");
+
+            // Try to find project directory
+            let project_dir = if known_path.join("Cargo.toml").exists() {
+                known_path
+            } else {
+                // Try current directory
+                let cwd = std::env::current_dir()?;
+                if cwd.join("Cargo.toml").exists() {
+                    cwd
+                } else {
+                    // Walk up from current dir
+                    let mut dir = cwd.clone();
+                    let mut found = None;
+                    for _ in 0..5 {
+                        if dir.join("Cargo.toml").exists() {
+                            found = Some(dir.clone());
+                            break;
+                        }
+                        if let Some(parent) = dir.parent() {
+                            dir = parent.to_path_buf();
+                        } else {
+                            break;
+                        }
+                    }
+                    found.ok_or_else(|| anyhow::anyhow!(
+                        "Could not find searchgrep source. Expected at: {}\nOr run from the searchgrep-rs directory.",
+                        known_path.display()
+                    ))?
+                }
+            };
+
+            println!(
+                "{} Building release from {}...",
+                "⚙".cyan(),
+                project_dir.display()
+            );
+
+            let status = Command::new("cargo")
+                .args(["build", "--release"])
+                .current_dir(&project_dir)
+                .status()?;
+
+            if !status.success() {
+                anyhow::bail!("Build failed");
+            }
+
+            let target_binary = project_dir.join("target/release/searchgrep");
+            let home = dirs::home_dir().context("Could not find home directory")?;
+            let install_path = home.join(".cargo/bin/searchgrep");
+
+            std::fs::copy(&target_binary, &install_path)?;
+
+            println!(
+                "{} Installed to {}",
+                "✓".green().bold(),
+                install_path.display()
+            );
+            println!("   Run {} to verify", "searchgrep --version".cyan());
         }
         Some(Commands::Ask {
             question,

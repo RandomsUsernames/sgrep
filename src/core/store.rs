@@ -51,28 +51,71 @@ impl Default for VectorStore {
 }
 
 impl VectorStore {
+    /// Binary store path (fast loading)
+    pub fn store_path_bin(store_name: Option<&str>) -> Result<PathBuf> {
+        let config_dir = Config::config_dir()?;
+        let name = store_name.unwrap_or("default");
+        Ok(config_dir.join(format!("{}.store.bin", name)))
+    }
+
+    /// Legacy JSON store path
     pub fn store_path(store_name: Option<&str>) -> Result<PathBuf> {
         let config_dir = Config::config_dir()?;
         let name = store_name.unwrap_or("default");
         Ok(config_dir.join(format!("{}.store.json", name)))
     }
 
+    /// Load store - prefers binary format, falls back to JSON
     pub fn load(store_name: Option<&str>) -> Result<Self> {
-        let path = Self::store_path(store_name)?;
-        if path.exists() {
-            let content = fs::read_to_string(&path)?;
-            let store: VectorStore = serde_json::from_str(&content)?;
-            Ok(store)
-        } else {
-            Ok(VectorStore::default())
+        let bin_path = Self::store_path_bin(store_name)?;
+        let json_path = Self::store_path(store_name)?;
+
+        // Try binary format first (fast)
+        if bin_path.exists() {
+            let data = fs::read(&bin_path)?;
+            let store: VectorStore =
+                bincode::deserialize(&data).context("Failed to deserialize binary store")?;
+            return Ok(store);
         }
+
+        // Fall back to JSON (legacy)
+        if json_path.exists() {
+            let content = fs::read_to_string(&json_path)?;
+            let store: VectorStore = serde_json::from_str(&content)?;
+            return Ok(store);
+        }
+
+        Ok(VectorStore::default())
     }
 
+    /// Save store in binary format (fast)
     pub fn save(&self, store_name: Option<&str>) -> Result<()> {
+        let bin_path = Self::store_path_bin(store_name)?;
+        let data = bincode::serialize(self)?;
+        fs::write(&bin_path, data)?;
+        Ok(())
+    }
+
+    /// Save store in JSON format (for debugging/export)
+    pub fn save_json(&self, store_name: Option<&str>) -> Result<()> {
         let path = Self::store_path(store_name)?;
         let content = serde_json::to_string(self)?;
         fs::write(path, content)?;
         Ok(())
+    }
+
+    /// Migrate from JSON to binary format
+    pub fn migrate_to_binary(store_name: Option<&str>) -> Result<bool> {
+        let json_path = Self::store_path(store_name)?;
+        let bin_path = Self::store_path_bin(store_name)?;
+
+        if json_path.exists() && !bin_path.exists() {
+            let content = fs::read_to_string(&json_path)?;
+            let store: VectorStore = serde_json::from_str(&content)?;
+            store.save(store_name)?;
+            return Ok(true);
+        }
+        Ok(false)
     }
 
     pub fn clear(&mut self) {

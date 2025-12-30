@@ -1,133 +1,67 @@
 #!/bin/bash
 # searchgrep installer
-# Installs searchgrep and configures it for Claude Code
+# Usage: curl -fsSL https://raw.githubusercontent.com/RandomsUsernames/Searchgrep/rust-rewrite/install.sh | bash
 
 set -e
 
 REPO="RandomsUsernames/Searchgrep"
-INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+INSTALL_DIR="$HOME/.cargo/bin"
 
-echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-echo "┃  searchgrep installer                  ┃"
-echo "┃  Semantic grep for the AI era          ┃"
-echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
-echo
+echo "⚡ Installing searchgrep..."
 
 # Detect OS and architecture
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
-case "$OS" in
-  darwin)
-    case "$ARCH" in
-      arm64|aarch64) TARGET="aarch64-apple-darwin" ;;
-      x86_64) TARGET="x86_64-apple-darwin" ;;
-      *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
-    esac
-    ;;
-  linux)
-    case "$ARCH" in
-      x86_64) TARGET="x86_64-unknown-linux-gnu" ;;
-      aarch64) TARGET="aarch64-unknown-linux-gnu" ;;
-      *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
-    esac
-    ;;
-  *)
-    echo "Unsupported OS: $OS"
-    exit 1
-    ;;
+case "$ARCH" in
+    x86_64) ARCH="x86_64" ;;
+    arm64|aarch64) ARCH="aarch64" ;;
+    *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-echo "Detected: $OS $ARCH"
-echo "Target: $TARGET"
-echo
+case "$OS" in
+    darwin) TARGET="${ARCH}-apple-darwin" ;;
+    linux) TARGET="${ARCH}-unknown-linux-gnu" ;;
+    *) echo "Unsupported OS: $OS"; exit 1 ;;
+esac
 
-# Check if cargo is available for building from source
-if command -v cargo &> /dev/null; then
-  echo "Rust found! Building from source for best performance..."
-  echo
+# Create install directory
+mkdir -p "$INSTALL_DIR"
 
-  # Clone and build
-  TMP_DIR=$(mktemp -d)
-  cd "$TMP_DIR"
+# Download latest release
+LATEST=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)
+DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${LATEST}/searchgrep-${TARGET}.tar.gz"
 
-  git clone --depth 1 "https://github.com/$REPO.git" searchgrep-rs
-  cd searchgrep-rs
+echo "📦 Downloading searchgrep ${LATEST} for ${TARGET}..."
 
-  cargo build --release
+curl -fsSL "$DOWNLOAD_URL" | tar -xz -C "$INSTALL_DIR"
+chmod +x "$INSTALL_DIR/searchgrep"
 
-  # Install
-  if [ -w "$INSTALL_DIR" ]; then
-    cp target/release/searchgrep "$INSTALL_DIR/"
-  else
-    sudo cp target/release/searchgrep "$INSTALL_DIR/"
-  fi
+echo "✓ Installed to $INSTALL_DIR/searchgrep"
+echo ""
 
-  # Cleanup
-  cd /
-  rm -rf "$TMP_DIR"
-else
-  echo "Rust not found. Downloading pre-built binary..."
-  echo "(Install Rust for optimized native builds: https://rustup.rs)"
-  echo
+# Setup MCP for Claude Code
+CLAUDE_CONFIG_DIR="$HOME/.claude"
+MCP_CONFIG="$CLAUDE_CONFIG_DIR/mcp_servers.json"
 
-  # Get latest release
-  LATEST=$(curl -sL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)
+setup_mcp() {
+    mkdir -p "$CLAUDE_CONFIG_DIR"
 
-  if [ -z "$LATEST" ]; then
-    echo "Could not determine latest release. Building from source..."
-    echo "Please install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-    exit 1
-  fi
-
-  URL="https://github.com/$REPO/releases/download/$LATEST/searchgrep-$TARGET.tar.gz"
-
-  TMP_DIR=$(mktemp -d)
-  cd "$TMP_DIR"
-
-  curl -sL "$URL" | tar xz
-
-  if [ -w "$INSTALL_DIR" ]; then
-    mv searchgrep "$INSTALL_DIR/"
-  else
-    sudo mv searchgrep "$INSTALL_DIR/"
-  fi
-
-  cd /
-  rm -rf "$TMP_DIR"
-fi
-
-echo
-echo "✓ searchgrep installed to $INSTALL_DIR/searchgrep"
-echo
-
-# Configure Claude Code MCP
-CLAUDE_CONFIG="$HOME/.claude/mcp_servers.json"
-
-configure_claude() {
-  mkdir -p "$HOME/.claude"
-
-  if [ -f "$CLAUDE_CONFIG" ]; then
-    # Check if searchgrep already configured
-    if grep -q '"searchgrep"' "$CLAUDE_CONFIG"; then
-      echo "✓ searchgrep already configured in Claude Code"
-      return
-    fi
-
-    # Add to existing config
-    echo "Adding searchgrep to Claude Code MCP servers..."
-    # Use jq if available, otherwise provide manual instructions
-    if command -v jq &> /dev/null; then
-      jq '.mcpServers.searchgrep = {"command": "searchgrep", "args": ["mcp-server"], "env": {}}' \
-        "$CLAUDE_CONFIG" > "$CLAUDE_CONFIG.tmp" && mv "$CLAUDE_CONFIG.tmp" "$CLAUDE_CONFIG"
-      echo "✓ Added searchgrep to Claude Code"
+    if [ -f "$MCP_CONFIG" ]; then
+        if grep -q '"searchgrep"' "$MCP_CONFIG"; then
+            echo "✓ searchgrep already configured in Claude Code"
+            return
+        fi
+        # Try to add to existing config
+        if command -v jq &> /dev/null; then
+            jq '.mcpServers.searchgrep = {"command": "searchgrep", "args": ["mcp-server"], "env": {}}' "$MCP_CONFIG" > "$MCP_CONFIG.tmp"
+            mv "$MCP_CONFIG.tmp" "$MCP_CONFIG"
+            echo "✓ Added searchgrep to Claude Code MCP config"
+        else
+            echo "Note: Install jq to auto-configure Claude Code, or manually add to $MCP_CONFIG"
+        fi
     else
-      echo "Please add to $CLAUDE_CONFIG:"
-      echo '  "searchgrep": { "command": "searchgrep", "args": ["mcp-server"], "env": {} }'
-    fi
-  else
-    # Create new config
-    cat > "$CLAUDE_CONFIG" << 'EOF'
+        cat > "$MCP_CONFIG" << 'MCPEOF'
 {
   "mcpServers": {
     "searchgrep": {
@@ -137,25 +71,24 @@ configure_claude() {
     }
   }
 }
-EOF
-    echo "✓ Created Claude Code MCP config"
-  fi
+MCPEOF
+        echo "✓ Created Claude Code MCP config"
+    fi
 }
 
-read -p "Configure for Claude Code? [Y/n] " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-  configure_claude
+# Auto-setup MCP if Claude Code directory exists or user wants it
+if [ -d "$CLAUDE_CONFIG_DIR" ] || [ -f "$HOME/.claude.json" ]; then
+    echo "🔧 Setting up Claude Code integration..."
+    setup_mcp
 fi
 
-echo
-echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-echo "┃  Installation complete!                ┃"
-echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
-echo
+echo ""
+echo "Make sure $INSTALL_DIR is in your PATH:"
+echo "  export PATH=\"\$HOME/.cargo/bin:\$PATH\""
+echo ""
 echo "Quick start:"
-echo "  searchgrep watch .          # Index current directory"
-echo "  searchgrep search \"query\"   # Semantic search"
-echo "  searchgrep --help           # See all options"
-echo
-echo "Restart Claude Code to use the MCP tools."
+echo "  searchgrep index .           # Index current directory"
+echo "  searchgrep search 'query'    # Search your code"
+echo "  searchgrep --help            # See all commands"
+echo ""
+echo "For Claude Code: Restart Claude Code to use searchgrep tools"

@@ -2,6 +2,7 @@ pub mod chunker;
 pub mod codemap;
 pub mod config;
 pub mod embeddings;
+pub mod fast_indexer;
 pub mod hybrid_embedder;
 pub mod local_embeddings;
 pub mod nomic_bert;
