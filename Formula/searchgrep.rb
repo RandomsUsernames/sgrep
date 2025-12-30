@@ -5,18 +5,10 @@ class Searchgrep < Formula
   license "MIT"
 
   on_macos do
-    if Hardware::CPU.arm?
+    on_arm do
       url "https://github.com/RandomsUsernames/Searchgrep/releases/download/v2.0.0/searchgrep-aarch64-apple-darwin.tar.gz"
-      sha256 "9867c76b878d19a7fdb5a4c9898a01fc809732e991b11529b1bf6ea2660ce826"
-    else
-      url "https://github.com/RandomsUsernames/Searchgrep/releases/download/v2.0.0/searchgrep-x86_64-apple-darwin.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_X64"
+      sha256 "79512459f3fb0c2aa1158bd878623233738e68ac50c66b8aea0bbf92b8e914a6"
     end
-  end
-
-  on_linux do
-    url "https://github.com/RandomsUsernames/Searchgrep/releases/download/v2.0.0/searchgrep-x86_64-unknown-linux-gnu.tar.gz"
-    sha256 "PLACEHOLDER_SHA256_LINUX"
   end
 
   def install
