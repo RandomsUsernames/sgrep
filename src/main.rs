@@ -13,6 +13,7 @@ use commands::{clean, compile, config, index, search, status, watch};
 #[command(name = "searchgrep")]
 #[command(about = "Semantic grep for the AI era - natural language code search")]
 #[command(version = "0.1.0")]
+#[command(args_conflicts_with_subcommands = true)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
