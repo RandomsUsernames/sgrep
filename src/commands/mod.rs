@@ -1,6 +1,8 @@
 pub mod clean;
 pub mod compile;
 pub mod config;
+pub mod graph;
+pub mod history;
 pub mod index;
 pub mod search;
 pub mod status;

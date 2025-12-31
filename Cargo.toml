@@ -75,6 +75,9 @@ tokenizers = "0.15"
 # Math operations
 ndarray = "0.16"
 
+# Fast ANN search
+usearch = "2"
+
 # MCP Server (JSON-RPC over stdio)
 async-trait = "0.1"
 

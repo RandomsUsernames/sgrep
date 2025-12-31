@@ -1,9 +1,11 @@
 use anyhow::{Context, Result};
 use colored::Colorize;
+use std::collections::HashSet;
 use std::time::Instant;
 
 use crate::core::config::Config;
 use crate::core::embeddings::EmbeddingProvider;
+use crate::core::graph::make_file_id;
 use crate::core::hybrid_embedder::HybridEmbedder;
 use crate::core::local_embeddings::{LocalEmbedder, SpeedMode};
 use crate::core::reranker::{simple_rerank, Reranker};
@@ -26,6 +28,10 @@ pub struct SearchOptions {
     pub code: bool,
     pub hybrid: bool,
     pub json: bool,
+    /// Include related files (imports/importers) in results
+    pub related: bool,
+    /// Depth for related file traversal
+    pub related_depth: usize,
 }
 
 pub async fn run(options: SearchOptions) -> Result<()> {
@@ -157,6 +163,70 @@ pub async fn run(options: SearchOptions) -> Result<()> {
         };
     } else {
         results.truncate(options.max_count);
+    }
+
+    // Expand with related files if requested
+    if options.related && !results.is_empty() {
+        if let Some(ref anim) = animation {
+            anim.update_stage("Finding related files...");
+        }
+
+        // Get unique file paths from results
+        let result_files: HashSet<String> =
+            results.iter().map(|r| r.chunk.file_path.clone()).collect();
+        let mut related_files: HashSet<String> = HashSet::new();
+
+        // For each result file, find related files in the knowledge graph
+        for file_path in &result_files {
+            // Try to find the file in the graph using different repo id strategies
+            // First, try with empty repo id (simple path lookup)
+            let file_id = make_file_id("", file_path);
+            let related = store
+                .graph
+                .get_related_files(&file_id, options.related_depth);
+
+            for related_file in related {
+                // Extract just the path part from the file_id (after the colon)
+                let path = if let Some(idx) = related_file.id.find(':') {
+                    &related_file.id[idx + 1..]
+                } else {
+                    &related_file.path
+                };
+
+                if !result_files.contains(path) {
+                    related_files.insert(path.to_string());
+                }
+            }
+
+            // Also try direct path lookup in graph.files
+            for (fid, fnode) in &store.graph.files {
+                if fnode.path == *file_path || fid.ends_with(file_path) {
+                    let related = store.graph.get_related_files(fid, options.related_depth);
+                    for related_file in related {
+                        if !result_files.contains(&related_file.path) {
+                            related_files.insert(related_file.path.clone());
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add related file results (with lower scores)
+        if !related_files.is_empty() {
+            for related_path in related_files.iter().take(options.max_count) {
+                // Find chunks for this file and add with reduced score
+                let chunks = store.chunks_for_file(related_path);
+                if let Some(first_chunk) = chunks.first() {
+                    results.push(SearchResult {
+                        chunk: (*first_chunk).clone(),
+                        score: 0.5, // Related files get lower score
+                        bm25_score: 0.0,
+                        vector_score: 0.5,
+                        colbert_score: None,
+                    });
+                }
+            }
+        }
     }
 
     // Finish animation

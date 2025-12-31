@@ -7,7 +7,7 @@ mod core;
 mod mcp;
 pub mod ui;
 
-use commands::{clean, compile, config, index, search, status, watch};
+use commands::{clean, compile, config, graph, history, index, search, status, watch};
 
 #[derive(Parser)]
 #[command(name = "searchgrep")]
@@ -77,6 +77,14 @@ enum Commands {
         /// Output results as JSON
         #[arg(long)]
         json: bool,
+
+        /// Include related files (imports/importers) in results
+        #[arg(long)]
+        related: bool,
+
+        /// Depth for related file traversal (default: 1)
+        #[arg(long, default_value = "1")]
+        related_depth: usize,
     },
 
     /// Index files and watch for changes
@@ -299,6 +307,60 @@ enum Commands {
         #[arg(default_value = "interactive")]
         tool: String,
     },
+
+    /// Show knowledge graph relationships for files
+    #[command(alias = "g")]
+    Graph {
+        /// File path to show graph for (optional, shows overview if not provided)
+        file: Option<String>,
+
+        /// Show only imports
+        #[arg(long)]
+        imports: bool,
+
+        /// Show only importers (files that import this file)
+        #[arg(long)]
+        importers: bool,
+
+        /// Depth of relationship traversal
+        #[arg(short, long, default_value = "1")]
+        depth: usize,
+
+        /// Use alternative store name
+        #[arg(long)]
+        store: Option<String>,
+
+        /// Show graph statistics only
+        #[arg(long)]
+        stats: bool,
+
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Show git history for a file with related changes
+    #[command(alias = "h")]
+    History {
+        /// File path to show history for
+        file: String,
+
+        /// Number of commits to show
+        #[arg(short, long, default_value = "10")]
+        limit: usize,
+
+        /// Use alternative store name
+        #[arg(long)]
+        store: Option<String>,
+
+        /// Show diffs
+        #[arg(short, long)]
+        diff: bool,
+
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[tokio::main]
@@ -320,6 +382,8 @@ async fn main() -> Result<()> {
             code,
             hybrid,
             json,
+            related,
+            related_depth,
         }) => {
             search::run(search::SearchOptions {
                 pattern,
@@ -339,6 +403,8 @@ async fn main() -> Result<()> {
                 code,
                 hybrid,
                 json,
+                related,
+                related_depth,
             })
             .await?;
         }
@@ -816,6 +882,8 @@ async fn main() -> Result<()> {
                 code: false,
                 hybrid: false,
                 json: false,
+                related: false,
+                related_depth: 1,
             })
             .await?;
         }
@@ -1383,6 +1451,42 @@ export default tool({
                 "Restart your AI tool to use the searchgrep skill.".yellow()
             );
         }
+        Some(Commands::Graph {
+            file,
+            imports,
+            importers,
+            depth,
+            store,
+            stats,
+            json,
+        }) => {
+            graph::run(graph::GraphOptions {
+                file,
+                imports,
+                importers,
+                depth,
+                store,
+                stats,
+                json,
+            })
+            .await?;
+        }
+        Some(Commands::History {
+            file,
+            limit,
+            store,
+            diff,
+            json,
+        }) => {
+            history::run(history::HistoryOptions {
+                file,
+                limit,
+                store,
+                diff,
+                json,
+            })
+            .await?;
+        }
         None => {
             if let Some(pattern) = cli.pattern {
                 search::run(search::SearchOptions {
@@ -1399,6 +1503,8 @@ export default tool({
                     code: false,
                     hybrid: false,
                     json: false,
+                    related: false,
+                    related_depth: 1,
                 })
                 .await?;
             } else {

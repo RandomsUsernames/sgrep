@@ -67,9 +67,24 @@ impl HybridSearcher {
             500.0
         };
 
-        let mut results: Vec<SearchResult> = store
-            .chunks
-            .values()
+        // Try ANN fast path first (for large indexes)
+        // Fetch more candidates than limit to allow for filtering and reranking
+        let ann_candidates = store.ann_search(query_embedding, limit * 3);
+
+        let chunks_iter: Box<dyn Iterator<Item = &FileChunk>> =
+            if let Some(ref candidates) = ann_candidates {
+                // Fast path: only score ANN candidates
+                Box::new(
+                    candidates
+                        .iter()
+                        .filter_map(|(chunk_id, _)| store.chunks.get(chunk_id)),
+                )
+            } else {
+                // Slow path: brute force all chunks
+                Box::new(store.chunks.values())
+            };
+
+        let mut results: Vec<SearchResult> = chunks_iter
             .filter(|chunk| {
                 // Filter by file type if specified
                 if let Some(types) = file_types {
@@ -86,7 +101,7 @@ impl HybridSearcher {
                 }
             })
             .map(|chunk| {
-                // Vector similarity
+                // Vector similarity (recompute for exact score, ANN gives approximate)
                 let vector_score = cosine_similarity(query_embedding, &chunk.embedding);
 
                 // BM25 score
@@ -175,16 +190,28 @@ impl HybridSearcher {
     }
 }
 
-// Quick vector-only search
+// Quick vector-only search (uses ANN when available)
 pub fn vector_search(
     store: &VectorStore,
     query_embedding: &[f32],
     limit: usize,
     file_types: Option<&[String]>,
 ) -> Vec<SearchResult> {
-    let mut results: Vec<SearchResult> = store
-        .chunks
-        .values()
+    // Try ANN fast path
+    let ann_candidates = store.ann_search(query_embedding, limit * 3);
+
+    let chunks_iter: Box<dyn Iterator<Item = &FileChunk>> =
+        if let Some(ref candidates) = ann_candidates {
+            Box::new(
+                candidates
+                    .iter()
+                    .filter_map(|(chunk_id, _)| store.chunks.get(chunk_id)),
+            )
+        } else {
+            Box::new(store.chunks.values())
+        };
+
+    let mut results: Vec<SearchResult> = chunks_iter
         .filter(|chunk| {
             if let Some(types) = file_types {
                 let file_ext = std::path::Path::new(&chunk.file_path)
