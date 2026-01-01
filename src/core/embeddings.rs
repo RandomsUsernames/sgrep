@@ -77,7 +77,7 @@ impl EmbeddingProvider {
             .local_embedder
             .as_ref()
             .ok_or_else(|| {
-                anyhow!("Local models not loaded. Run: searchgrep config --download-model")
+                anyhow!("Local models not loaded. Run: sgrep config --download-model")
             })?
             .lock()
             .map_err(|e| anyhow!("Failed to lock embedder: {}", e))?;
@@ -99,7 +99,7 @@ impl EmbeddingProvider {
                 .local_embedder
                 .as_ref()
                 .ok_or_else(|| {
-                    anyhow!("Local models not loaded. Run: searchgrep config --download-model")
+                    anyhow!("Local models not loaded. Run: sgrep config --download-model")
                 })?
                 .lock()
                 .map_err(|e| anyhow!("Failed to lock embedder: {}", e))?;
@@ -113,7 +113,7 @@ impl EmbeddingProvider {
         let api_key = self
             .config
             .get_api_key()
-            .context("No API key configured. Run: searchgrep config --api-key YOUR_KEY")?;
+            .context("No API key configured. Run: sgrep config --api-key YOUR_KEY")?;
 
         let base_url = self.config.get_base_url();
         let url = format!("{}/embeddings", base_url);
@@ -153,7 +153,7 @@ impl EmbeddingProvider {
                 .local_embedder
                 .as_ref()
                 .ok_or_else(|| {
-                    anyhow!("Local models not loaded. Run: searchgrep config --download-model")
+                    anyhow!("Local models not loaded. Run: sgrep config --download-model")
                 })?
                 .lock()
                 .map_err(|e| anyhow!("Failed to lock embedder: {}", e))?;

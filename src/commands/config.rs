@@ -32,7 +32,7 @@ pub async fn run(options: ConfigOptions) -> Result<()> {
         println!("{}", "✓ Models downloaded successfully".green());
         println!(
             "  Run: {} to use local embeddings",
-            "searchgrep config --provider local".yellow()
+            "sgrep config --provider local".yellow()
         );
         return Ok(());
     }
@@ -80,7 +80,7 @@ pub async fn run(options: ConfigOptions) -> Result<()> {
         if provider == "local" && !LocalEmbedder::is_available() {
             println!(
                 "{}",
-                "Warning: Local models not found. Run: searchgrep config --download-model".yellow()
+                "Warning: Local models not found. Run: sgrep config --download-model".yellow()
             );
         }
         config.provider = provider;
@@ -104,7 +104,7 @@ pub async fn run(options: ConfigOptions) -> Result<()> {
 }
 
 fn show_config(config: &Config) {
-    println!("{}", "searchgrep configuration".bold());
+    println!("{}", "sgrep configuration".bold());
     println!();
 
     println!("  {} {}", "Provider:".dimmed(), config.provider);
@@ -169,7 +169,7 @@ fn show_config(config: &Config) {
         );
     } else if !coderankembed_available && !sfr_code_available {
         println!();
-        println!("  {}", "Run: searchgrep config --download-model".yellow());
+        println!("  {}", "Run: sgrep config --download-model".yellow());
     }
 
     println!();

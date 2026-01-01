@@ -139,7 +139,7 @@ fn show_map(root: &Path, minimal: bool) -> Result<()> {
         }
         None => {
             println!("{} No codebase map found.", "✗".red());
-            println!("  Run: {} to generate", "searchgrep compile".yellow());
+            println!("  Run: {} to generate", "sgrep compile".yellow());
         }
     }
 

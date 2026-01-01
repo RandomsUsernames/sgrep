@@ -269,7 +269,7 @@ fn print_footer(count: usize, width: usize) {
 
     // Stats line
     let stats = format!(
-        " {} Found {} results {} searchgrep v0.1.0 ",
+        " {} Found {} results {} sgrep v0.1.0 ",
         BoxChars::CHECK,
         count,
         BoxChars::BULLET

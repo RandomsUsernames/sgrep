@@ -1,6 +1,6 @@
 # Searchgrep Benchmarks
 
-Comparing searchgrep against other popular code search tools.
+Comparing sgrep against other popular code search tools.
 
 ## Tools Compared
 
@@ -10,13 +10,13 @@ Comparing searchgrep against other popular code search tools.
 | ripgrep | 14.1.1 | Regex | Fast parallel regex search |
 | ag | 2.2.0 | Regex | The Silver Searcher |
 | ast-grep | 0.40.3 | AST | Structural pattern matching |
-| searchgrep | 0.1.0 | Semantic | AI-powered semantic search |
+| sgrep | 0.1.0 | Semantic | AI-powered semantic search |
 
 ## Benchmark Results
 
 ### Test 1: Raw Text Search Speed
 
-**Dataset:** searchgrep-rs source code (30 Rust files)
+**Dataset:** sgrep-rs source code (30 Rust files)
 
 | Pattern | grep | ripgrep | ag |
 |---------|------|---------|-----|
@@ -29,9 +29,9 @@ Comparing searchgrep against other popular code search tools.
 
 **Note:** On this small dataset, grep and ripgrep perform similarly. ripgrep's advantage becomes more pronounced on larger codebases (10-100x faster).
 
-### Test 2: Semantic Search (searchgrep only)
+### Test 2: Semantic Search (sgrep only)
 
-These queries demonstrate searchgrep's unique capability - understanding **intent**, not just patterns:
+These queries demonstrate sgrep's unique capability - understanding **intent**, not just patterns:
 
 | Query | What It Finds |
 |-------|---------------|
@@ -58,7 +58,7 @@ Structural patterns that match code shape:
 | Use Case | Best Tool | Why |
 |----------|-----------|-----|
 | Quick keyword search | **ripgrep** | Fastest for regex, respects .gitignore |
-| Find by meaning | **searchgrep** | Understands what you're looking for |
+| Find by meaning | **sgrep** | Understands what you're looking for |
 | Code refactoring | **ast-grep** | Matches code structure |
 | Universal fallback | **grep** | Available everywhere |
 | Interactive search | **ag** | Great defaults for developers |
@@ -66,7 +66,7 @@ Structural patterns that match code shape:
 ## Key Insights
 
 1. **ripgrep** is the king of raw text search - 10-100x faster than grep on large codebases
-2. **searchgrep** fills a different niche - it understands code semantics
+2. **sgrep** fills a different niche - it understands code semantics
 3. **ast-grep** is invaluable for large-scale refactoring
 4. These tools are **complementary**, not competing
 

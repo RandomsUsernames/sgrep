@@ -55,7 +55,7 @@ pub async fn run(options: StatusOptions) -> Result<()> {
         return Ok(());
     }
 
-    println!("{}", "searchgrep index status".bold());
+    println!("{}", "sgrep index status".bold());
     println!();
 
     println!("  {} {}", "Files indexed:".dimmed(), file_count);
@@ -95,7 +95,7 @@ pub async fn run(options: StatusOptions) -> Result<()> {
     if file_count == 0 {
         println!();
         println!("{}", "No files indexed yet. Run:".yellow());
-        println!("  searchgrep watch [path]");
+        println!("  sgrep watch [path]");
     }
 
     Ok(())

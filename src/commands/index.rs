@@ -139,7 +139,7 @@ pub async fn run(options: IndexOptions) -> Result<()> {
             println!(
                 "   {} Run {} for semantic search",
                 "💡".yellow(),
-                "searchgrep index --balanced".cyan()
+                "sgrep index --balanced".cyan()
             );
         }
     } else {

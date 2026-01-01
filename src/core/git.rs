@@ -346,7 +346,7 @@ mod tests {
 
     #[test]
     fn test_is_git_repo() {
-        // Current directory should be a git repo (searchgrep-rs)
+        // Current directory should be a git repo (sgrep-rs)
         assert!(is_git_repo("."));
     }
 }

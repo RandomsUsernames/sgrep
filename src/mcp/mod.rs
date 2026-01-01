@@ -1,6 +1,6 @@
-//! MCP (Model Context Protocol) Server for searchgrep
+//! MCP (Model Context Protocol) Server for sgrep
 //!
-//! Exposes searchgrep as a tool for Claude Code via JSON-RPC over stdio.
+//! Exposes sgrep as a tool for Claude Code via JSON-RPC over stdio.
 
 mod protocol;
 mod server;

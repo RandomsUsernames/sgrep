@@ -40,7 +40,7 @@ impl Default for Config {
 impl Config {
     pub fn config_dir() -> Result<PathBuf> {
         let home = dirs::home_dir().context("Could not find home directory")?;
-        let config_dir = home.join(".searchgrep");
+        let config_dir = home.join(".sgrep");
         if !config_dir.exists() {
             fs::create_dir_all(&config_dir)?;
         }

@@ -1,4 +1,4 @@
-//! MCP Server implementation for searchgrep
+//! MCP Server implementation for sgrep
 //!
 //! Runs as a stdio JSON-RPC server for Claude Code integration.
 
@@ -88,7 +88,7 @@ impl McpServer {
                 },
             },
             server_info: ServerInfo {
-                name: "searchgrep".to_string(),
+                name: "sgrep".to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
             },
         };
@@ -366,7 +366,7 @@ impl McpServer {
 
         if store.chunk_count() == 0 {
             return ToolCallResult::error(
-                "No files indexed. Run 'searchgrep watch <path>' first to index your codebase."
+                "No files indexed. Run 'sgrep watch <path>' first to index your codebase."
                     .to_string(),
             );
         }
@@ -528,7 +528,7 @@ impl McpServer {
             }
             Ok(None) => {
                 ToolCallResult::error(
-                    "No codebase map found. Run 'searchgrep compile' first to generate a map of your codebase.".to_string()
+                    "No codebase map found. Run 'sgrep compile' first to generate a map of your codebase.".to_string()
                 )
             }
             Err(e) => ToolCallResult::error(format!("Failed to load map: {}", e)),
@@ -568,7 +568,7 @@ impl McpServer {
 
                 if results.is_empty() {
                     return ToolCallResult::success(format!(
-                        "No symbols found matching '{}'\n\nTry:\n- Different search terms\n- Run 'searchgrep compile' to update the map",
+                        "No symbols found matching '{}'\n\nTry:\n- Different search terms\n- Run 'sgrep compile' to update the map",
                         query
                     ));
                 }
@@ -598,7 +598,7 @@ impl McpServer {
                 ToolCallResult::success(output)
             }
             Ok(None) => ToolCallResult::error(
-                "No codebase map found. Run 'searchgrep compile' first.".to_string(),
+                "No codebase map found. Run 'sgrep compile' first.".to_string(),
             ),
             Err(e) => ToolCallResult::error(format!("Failed to load map: {}", e)),
         }
@@ -700,7 +700,7 @@ impl McpServer {
                 }
             }
             Ok(None) => ToolCallResult::error(
-                "No codebase map found. Run 'searchgrep compile' first.".to_string(),
+                "No codebase map found. Run 'sgrep compile' first.".to_string(),
             ),
             Err(e) => ToolCallResult::error(format!("Failed to load map: {}", e)),
         }
@@ -738,7 +738,7 @@ impl McpServer {
 
         if store.chunk_count() == 0 {
             return ToolCallResult::error(
-                "No files indexed. Run 'searchgrep watch <path>' first.".to_string(),
+                "No files indexed. Run 'sgrep watch <path>' first.".to_string(),
             );
         }
 
@@ -820,7 +820,7 @@ impl McpServer {
 
         if store.chunk_count() == 0 {
             return ToolCallResult::error(
-                "No files indexed. Run 'searchgrep watch <path>' first.".to_string(),
+                "No files indexed. Run 'sgrep watch <path>' first.".to_string(),
             );
         }
 
@@ -993,7 +993,7 @@ impl McpServer {
 
         if store.chunk_count() == 0 {
             return ToolCallResult::error(
-                "No files indexed. Run 'searchgrep watch <path>' first.".to_string(),
+                "No files indexed. Run 'sgrep watch <path>' first.".to_string(),
             );
         }
 

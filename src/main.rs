@@ -10,7 +10,7 @@ pub mod ui;
 use commands::{clean, compile, config, graph, history, index, search, status, watch};
 
 #[derive(Parser)]
-#[command(name = "searchgrep")]
+#[command(name = "sgrep")]
 #[command(about = "Semantic grep for the AI era - natural language code search")]
 #[command(version = "0.1.0")]
 #[command(args_conflicts_with_subcommands = true)]
@@ -114,7 +114,7 @@ enum Commands {
         code: bool,
     },
 
-    /// Configure searchgrep settings
+    /// Configure sgrep settings
     #[command(alias = "c")]
     Config {
         /// Set OpenAI API key
@@ -242,7 +242,7 @@ enum Commands {
         json: bool,
     },
 
-    /// Build and install searchgrep to ~/.cargo/bin
+    /// Build and install sgrep to ~/.cargo/bin
     Install,
 
     /// Setup MCP integration for AI coding tools
@@ -275,21 +275,21 @@ enum Commands {
         store: Option<String>,
     },
 
-    /// Update searchgrep to the latest version from GitHub
+    /// Update sgrep to the latest version from GitHub
     Update {
         /// Check for updates without installing
         #[arg(long)]
         check: bool,
     },
 
-    /// Remove searchgrep MCP configuration from AI tools
+    /// Remove sgrep MCP configuration from AI tools
     Remove {
         /// Tool to remove from: claude, opencode, cursor, windsurf, or all
         #[arg(default_value = "interactive")]
         tool: String,
     },
 
-    /// Initialize searchgrep in current directory (index + compile)
+    /// Initialize sgrep in current directory (index + compile)
     Init {
         /// Fast mode - skip embeddings, BM25 only
         #[arg(long)]
@@ -300,7 +300,7 @@ enum Commands {
         mcp: bool,
     },
 
-    /// Install searchgrep as a skill/tool for AI coding tools (in addition to MCP)
+    /// Install sgrep as a skill/tool for AI coding tools (in addition to MCP)
     #[command(alias = "skills")]
     Skill {
         /// Tool to install skill for: claude, gemini, opencode, or all
@@ -512,7 +512,7 @@ async fn main() -> Result<()> {
 
             // Known source location
             let home = dirs::home_dir().context("Could not find home directory")?;
-            let known_path = home.join("extras/stuff/searchgrep-rs");
+            let known_path = home.join("extras/stuff/sgrep-rs");
 
             // Try to find project directory
             let project_dir = if known_path.join("Cargo.toml").exists() {
@@ -538,7 +538,7 @@ async fn main() -> Result<()> {
                         }
                     }
                     found.ok_or_else(|| anyhow::anyhow!(
-                        "Could not find searchgrep source. Expected at: {}\nOr run from the searchgrep-rs directory.",
+                        "Could not find sgrep source. Expected at: {}\nOr run from the sgrep-rs directory.",
                         known_path.display()
                     ))?
                 }
@@ -559,9 +559,9 @@ async fn main() -> Result<()> {
                 anyhow::bail!("Build failed");
             }
 
-            let target_binary = project_dir.join("target/release/searchgrep");
+            let target_binary = project_dir.join("target/release/sgrep");
             let home = dirs::home_dir().context("Could not find home directory")?;
-            let install_path = home.join(".cargo/bin/searchgrep");
+            let install_path = home.join(".cargo/bin/sgrep");
 
             std::fs::copy(&target_binary, &install_path)?;
 
@@ -570,7 +570,7 @@ async fn main() -> Result<()> {
                 "✓".green().bold(),
                 install_path.display()
             );
-            println!("   Run {} to verify", "searchgrep --version".cyan());
+            println!("   Run {} to verify", "sgrep --version".cyan());
         }
         Some(Commands::Setup { tool }) => {
             use anyhow::Context;
@@ -579,14 +579,14 @@ async fn main() -> Result<()> {
 
             let home = dirs::home_dir().context("Could not find home directory")?;
 
-            // Find searchgrep binary path
-            let searchgrep_path = which::which("searchgrep")
+            // Find sgrep binary path
+            let sgrep_path = which::which("sgrep")
                 .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|_| "searchgrep".to_string());
+                .unwrap_or_else(|_| "sgrep".to_string());
 
             let tools: Vec<&str> = match tool.as_str() {
                 "interactive" => {
-                    println!("{}", "searchgrep MCP Setup".cyan().bold());
+                    println!("{}", "sgrep MCP Setup".cyan().bold());
                     println!();
                     println!("Select AI coding tool to configure:");
                     println!();
@@ -685,7 +685,7 @@ async fn main() -> Result<()> {
                 // Claude Code uses ~/.claude.json with projects[home]["mcpServers"] structure
                 if config_type == "claude" {
                     let mcp_config = serde_json::json!({
-                        "command": searchgrep_path,
+                        "command": sgrep_path,
                         "args": ["mcp-server"],
                         "env": {}
                     });
@@ -701,14 +701,14 @@ async fn main() -> Result<()> {
                     if config.get("mcpServers").is_none() {
                         config["mcpServers"] = serde_json::json!({});
                     }
-                    config["mcpServers"]["searchgrep"] = mcp_config;
+                    config["mcpServers"]["sgrep"] = mcp_config;
 
                     let content = serde_json::to_string_pretty(&config)?;
                     std::fs::write(&config_path, content)?;
                 } else if config_type == "context_servers" {
                     // Zed uses a different config structure
                     let zed_config = serde_json::json!({
-                        "command": searchgrep_path,
+                        "command": sgrep_path,
                         "args": ["mcp-server"]
                     });
 
@@ -722,15 +722,15 @@ async fn main() -> Result<()> {
                     if config.get("context_servers").is_none() {
                         config["context_servers"] = serde_json::json!({});
                     }
-                    config["context_servers"]["searchgrep"] = zed_config;
+                    config["context_servers"]["sgrep"] = zed_config;
 
                     let content = serde_json::to_string_pretty(&config)?;
                     std::fs::write(&config_path, content)?;
                 } else if config_type == "experimental.modelContextProtocolServers" {
                     // Continue uses experimental.modelContextProtocolServers array
                     let continue_config = serde_json::json!({
-                        "name": "searchgrep",
-                        "command": searchgrep_path,
+                        "name": "sgrep",
+                        "command": sgrep_path,
                         "args": ["mcp-server"]
                     });
 
@@ -752,12 +752,12 @@ async fn main() -> Result<()> {
                             serde_json::json!([]);
                     }
 
-                    // Remove existing searchgrep entry if present
+                    // Remove existing sgrep entry if present
                     if let Some(arr) =
                         config["experimental"]["modelContextProtocolServers"].as_array_mut()
                     {
                         arr.retain(|v| {
-                            v.get("name").and_then(|n| n.as_str()) != Some("searchgrep")
+                            v.get("name").and_then(|n| n.as_str()) != Some("sgrep")
                         });
                         arr.push(continue_config);
                     }
@@ -772,30 +772,30 @@ async fn main() -> Result<()> {
                         String::new()
                     };
 
-                    // Check if searchgrep is already configured
-                    if existing_content.contains("[mcp_servers.searchgrep]") {
+                    // Check if sgrep is already configured
+                    if existing_content.contains("[mcp_servers.sgrep]") {
                         // Update existing entry
                         let updated = existing_content
                             .lines()
                             .filter(|line| {
-                                !line.contains("[mcp_servers.searchgrep]")
-                                    && !line.starts_with("command = \"searchgrep\"")
+                                !line.contains("[mcp_servers.sgrep]")
+                                    && !line.starts_with("command = \"sgrep\"")
                                     && !(line.starts_with("args = ") && line.contains("mcp"))
                             })
                             .collect::<Vec<_>>()
                             .join("\n");
                         let new_content = format!(
-                            "{}\n\n[mcp_servers.searchgrep]\ncommand = \"{}\"\nargs = [\"mcp-server\"]\n",
+                            "{}\n\n[mcp_servers.sgrep]\ncommand = \"{}\"\nargs = [\"mcp-server\"]\n",
                             updated.trim(),
-                            searchgrep_path
+                            sgrep_path
                         );
                         std::fs::write(&config_path, new_content)?;
                     } else {
                         // Append new entry
                         let new_content = format!(
-                            "{}\n\n[mcp_servers.searchgrep]\ncommand = \"{}\"\nargs = [\"mcp-server\"]\n",
+                            "{}\n\n[mcp_servers.sgrep]\ncommand = \"{}\"\nargs = [\"mcp-server\"]\n",
                             existing_content.trim(),
-                            searchgrep_path
+                            sgrep_path
                         );
                         std::fs::write(&config_path, new_content)?;
                     }
@@ -803,7 +803,7 @@ async fn main() -> Result<()> {
                     // OpenCode uses JSON format with type, command array, and enabled
                     let mcp_config = serde_json::json!({
                         "type": "local",
-                        "command": [searchgrep_path, "mcp-server"],
+                        "command": [sgrep_path, "mcp-server"],
                         "enabled": true
                     });
 
@@ -817,14 +817,14 @@ async fn main() -> Result<()> {
                     if config.get("mcp").is_none() {
                         config["mcp"] = serde_json::json!({});
                     }
-                    config["mcp"]["searchgrep"] = mcp_config;
+                    config["mcp"]["sgrep"] = mcp_config;
 
                     let content = serde_json::to_string_pretty(&config)?;
                     std::fs::write(&config_path, content)?;
                 } else {
                     // Standard mcpServers format (Cursor, Cline, etc.)
                     let mcp_config = serde_json::json!({
-                        "command": searchgrep_path,
+                        "command": sgrep_path,
                         "args": ["mcp-server"],
                         "env": {}
                     });
@@ -839,7 +839,7 @@ async fn main() -> Result<()> {
                     if config.get("mcpServers").is_none() {
                         config["mcpServers"] = serde_json::json!({});
                     }
-                    config["mcpServers"]["searchgrep"] = mcp_config;
+                    config["mcpServers"]["sgrep"] = mcp_config;
 
                     let content = serde_json::to_string_pretty(&config)?;
                     std::fs::write(&config_path, content)?;
@@ -854,7 +854,7 @@ async fn main() -> Result<()> {
             }
 
             println!();
-            println!("{}", "Restart your AI tool to use searchgrep.".yellow());
+            println!("{}", "Restart your AI tool to use sgrep.".yellow());
             println!(
                 "Available MCP tools: {}, {}",
                 "semantic_search".cyan(),
@@ -901,7 +901,7 @@ async fn main() -> Result<()> {
             let client = reqwest::Client::new();
             let resp = client
                 .get("https://api.github.com/repos/RandomsUsernames/Searchgrep/releases/latest")
-                .header("User-Agent", "searchgrep")
+                .header("User-Agent", "sgrep")
                 .send()
                 .await?;
 
@@ -929,7 +929,7 @@ async fn main() -> Result<()> {
             );
 
             if check {
-                println!("\nRun 'searchgrep update' to install the latest version.");
+                println!("\nRun 'sgrep update' to install the latest version.");
                 return Ok(());
             }
 
@@ -938,16 +938,16 @@ async fn main() -> Result<()> {
 
             #[cfg(target_os = "macos")]
             let asset_name = if cfg!(target_arch = "aarch64") {
-                "searchgrep-aarch64-apple-darwin.tar.gz"
+                "sgrep-aarch64-apple-darwin.tar.gz"
             } else {
-                "searchgrep-x86_64-apple-darwin.tar.gz"
+                "sgrep-x86_64-apple-darwin.tar.gz"
             };
 
             #[cfg(target_os = "linux")]
-            let asset_name = "searchgrep-x86_64-unknown-linux-gnu.tar.gz";
+            let asset_name = "sgrep-x86_64-unknown-linux-gnu.tar.gz";
 
             #[cfg(target_os = "windows")]
-            let asset_name = "searchgrep-x86_64-pc-windows-msvc.zip";
+            let asset_name = "sgrep-x86_64-pc-windows-msvc.zip";
 
             let download_url = format!(
                 "https://github.com/RandomsUsernames/Searchgrep/releases/download/v{}/{}",
@@ -964,7 +964,7 @@ async fn main() -> Result<()> {
             let bytes = resp.bytes().await?;
 
             // Extract and install
-            let temp_dir = std::env::temp_dir().join("searchgrep-update");
+            let temp_dir = std::env::temp_dir().join("sgrep-update");
             std::fs::create_dir_all(&temp_dir)?;
 
             let archive_path = temp_dir.join(asset_name);
@@ -990,9 +990,9 @@ async fn main() -> Result<()> {
             // Copy binary to cargo bin
             let cargo_bin = dirs::home_dir()
                 .unwrap_or_default()
-                .join(".cargo/bin/searchgrep");
+                .join(".cargo/bin/sgrep");
 
-            let new_binary = temp_dir.join("searchgrep");
+            let new_binary = temp_dir.join("sgrep");
             if new_binary.exists() {
                 std::fs::copy(&new_binary, &cargo_bin)?;
                 #[cfg(unix)]
@@ -1015,9 +1015,9 @@ async fn main() -> Result<()> {
 
             let tools: Vec<&str> = match tool.as_str() {
                 "interactive" => {
-                    println!("{}", "searchgrep MCP Removal".cyan().bold());
+                    println!("{}", "sgrep MCP Removal".cyan().bold());
                     println!();
-                    println!("Select AI tool to remove searchgrep from:");
+                    println!("Select AI tool to remove sgrep from:");
                     println!();
                     println!("  {}  Claude Code", "1.".bold());
                     println!("  {}  OpenCode", "2.".bold());
@@ -1084,13 +1084,13 @@ async fn main() -> Result<()> {
                 let removed = if config_type == "claude" {
                     // Claude Code uses top-level mcpServers
                     if let Some(servers) = config["mcpServers"].as_object_mut() {
-                        servers.remove("searchgrep").is_some()
+                        servers.remove("sgrep").is_some()
                     } else {
                         false
                     }
                 } else if config_type == "context_servers" {
                     if let Some(servers) = config["context_servers"].as_object_mut() {
-                        servers.remove("searchgrep").is_some()
+                        servers.remove("sgrep").is_some()
                     } else {
                         false
                     }
@@ -1100,7 +1100,7 @@ async fn main() -> Result<()> {
                     {
                         let len_before = arr.len();
                         arr.retain(|v| {
-                            v.get("name").and_then(|n| n.as_str()) != Some("searchgrep")
+                            v.get("name").and_then(|n| n.as_str()) != Some("sgrep")
                         });
                         arr.len() < len_before
                     } else {
@@ -1108,7 +1108,7 @@ async fn main() -> Result<()> {
                     }
                 } else {
                     if let Some(servers) = config["mcpServers"].as_object_mut() {
-                        servers.remove("searchgrep").is_some()
+                        servers.remove("sgrep").is_some()
                     } else {
                         false
                     }
@@ -1116,7 +1116,7 @@ async fn main() -> Result<()> {
 
                 if removed {
                     std::fs::write(&config_path, serde_json::to_string_pretty(&config)?)?;
-                    println!("{} Removed searchgrep from {}", "✓".green(), tool_name);
+                    println!("{} Removed sgrep from {}", "✓".green(), tool_name);
                 }
             }
         }
@@ -1125,7 +1125,7 @@ async fn main() -> Result<()> {
 
             let current_dir = std::env::current_dir()?;
             println!(
-                "{} Initializing searchgrep in {}",
+                "{} Initializing sgrep in {}",
                 "→".cyan(),
                 current_dir.display()
             );
@@ -1168,9 +1168,9 @@ async fn main() -> Result<()> {
                 println!("{} Setting up Claude Code MCP...", "→".cyan());
                 let home = dirs::home_dir()
                     .ok_or_else(|| anyhow::anyhow!("Cannot find home directory"))?;
-                let searchgrep_path = which::which("searchgrep")
+                let sgrep_path = which::which("sgrep")
                     .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|_| "searchgrep".to_string());
+                    .unwrap_or_else(|_| "sgrep".to_string());
 
                 let config_path = home.join(".claude.json");
 
@@ -1185,8 +1185,8 @@ async fn main() -> Result<()> {
                 if config.get("mcpServers").is_none() {
                     config["mcpServers"] = serde_json::json!({});
                 }
-                config["mcpServers"]["searchgrep"] = serde_json::json!({
-                    "command": searchgrep_path,
+                config["mcpServers"]["sgrep"] = serde_json::json!({
+                    "command": sgrep_path,
                     "args": ["mcp-server"],
                     "env": {}
                 });
@@ -1197,10 +1197,10 @@ async fn main() -> Result<()> {
 
             println!();
             println!("{}", "Ready! You can now:".green().bold());
-            println!("  • Search: searchgrep search \"your query\"");
-            println!("  • Ask: searchgrep ask \"how does X work?\"");
+            println!("  • Search: sgrep search \"your query\"");
+            println!("  • Ask: sgrep ask \"how does X work?\"");
             if !mcp {
-                println!("  • Setup MCP: searchgrep mcp");
+                println!("  • Setup MCP: sgrep mcp");
             }
         }
         Some(Commands::Skill { tool }) => {
@@ -1211,9 +1211,9 @@ async fn main() -> Result<()> {
 
             let tools: Vec<&str> = match tool.as_str() {
                 "interactive" => {
-                    println!("{}", "searchgrep Skill Setup".cyan().bold());
+                    println!("{}", "sgrep Skill Setup".cyan().bold());
                     println!();
-                    println!("Install searchgrep as a skill/tool for:");
+                    println!("Install sgrep as a skill/tool for:");
                     println!();
                     println!("  {}  Claude (claude.ai & Claude Code)", "1.".bold());
                     println!("  {}  Gemini CLI", "2.".bold());
@@ -1252,21 +1252,21 @@ async fn main() -> Result<()> {
                 match tool_name {
                     "claude" => {
                         // Claude uses SKILL.md files in .claude/skills/
-                        let skill_dir = home.join(".claude/skills/searchgrep");
+                        let skill_dir = home.join(".claude/skills/sgrep");
                         std::fs::create_dir_all(&skill_dir)?;
 
                         let skill_content = r#"---
-name: searchgrep
+name: sgrep
 description: Semantic code search using AI embeddings. Search your codebase using natural language instead of regex patterns.
 ---
 
-# searchgrep - Semantic Code Search
+# sgrep - Semantic Code Search
 
 A powerful semantic grep tool that uses AI embeddings to search code by meaning, not just text matching.
 
 ## When to Use This Skill
 
-Use searchgrep when you need to:
+Use sgrep when you need to:
 - Find code related to a concept (e.g., "authentication logic", "error handling")
 - Search for implementations without knowing exact function names
 - Explore unfamiliar codebases
@@ -1276,21 +1276,21 @@ Use searchgrep when you need to:
 
 ### Search
 ```bash
-searchgrep search "your natural language query" [path]
-searchgrep search -m 20 "database connection handling"  # more results
-searchgrep search -c "API error responses"  # show content snippets
+sgrep search "your natural language query" [path]
+sgrep search -m 20 "database connection handling"  # more results
+sgrep search -c "API error responses"  # show content snippets
 ```
 
 ### Ask (AI-powered Q&A)
 ```bash
-searchgrep ask "how does the payment system work?"
-searchgrep ask "what authentication methods are used?"
+sgrep ask "how does the payment system work?"
+sgrep ask "what authentication methods are used?"
 ```
 
 ### Index (for faster searches)
 ```bash
-searchgrep index .  # index current directory
-searchgrep index --fast .  # quick BM25-only indexing
+sgrep index .  # index current directory
+sgrep index --fast .  # quick BM25-only indexing
 ```
 
 ## Best Practices
@@ -1301,10 +1301,10 @@ searchgrep index --fast .  # quick BM25-only indexing
 
 ## Examples
 
-- `searchgrep search "user authentication middleware"`
-- `searchgrep search "database connection pooling" src/`
-- `searchgrep ask "how are API routes organized?"`
-- `searchgrep search -t py "machine learning model training"`
+- `sgrep search "user authentication middleware"`
+- `sgrep search "database connection pooling" src/`
+- `sgrep ask "how are API routes organized?"`
+- `sgrep search -t py "machine learning model training"`
 "#;
 
                         let skill_path = skill_dir.join("SKILL.md");
@@ -1318,20 +1318,20 @@ searchgrep index --fast .  # quick BM25-only indexing
                     }
                     "gemini" => {
                         // Gemini CLI uses extensions in .gemini/extensions/
-                        let ext_dir = home.join(".gemini/extensions/searchgrep");
+                        let ext_dir = home.join(".gemini/extensions/sgrep");
                         std::fs::create_dir_all(&ext_dir)?;
 
-                        // Find searchgrep binary path
-                        let searchgrep_path = which::which("searchgrep")
+                        // Find sgrep binary path
+                        let sgrep_path = which::which("sgrep")
                             .map(|p| p.to_string_lossy().to_string())
-                            .unwrap_or_else(|_| "searchgrep".to_string());
+                            .unwrap_or_else(|_| "sgrep".to_string());
 
                         let extension_json = serde_json::json!({
-                            "name": "searchgrep",
+                            "name": "sgrep",
                             "description": "Semantic code search using AI embeddings. Search your codebase using natural language.",
                             "mcpServers": {
-                                "searchgrep": {
-                                    "command": searchgrep_path,
+                                "sgrep": {
+                                    "command": sgrep_path,
                                     "args": ["mcp-server"]
                                 }
                             },
@@ -1349,22 +1349,22 @@ searchgrep index --fast .  # quick BM25-only indexing
                         )?;
 
                         // Also add a SKILL.md for context
-                        let skill_content = r#"# searchgrep - Semantic Code Search
+                        let skill_content = r#"# sgrep - Semantic Code Search
 
-Use searchgrep to search code by meaning using natural language.
+Use sgrep to search code by meaning using natural language.
 
 ## Commands
 
-- `searchgrep search "query"` - Semantic search
-- `searchgrep ask "question"` - Ask questions about code
-- `searchgrep index .` - Index for faster searches
+- `sgrep search "query"` - Semantic search
+- `sgrep ask "question"` - Ask questions about code
+- `sgrep index .` - Index for faster searches
 
 ## Examples
 
 ```bash
-searchgrep search "authentication middleware"
-searchgrep search -m 20 "error handling patterns"
-searchgrep ask "how does the API handle errors?"
+sgrep search "authentication middleware"
+sgrep search -m 20 "error handling patterns"
+sgrep ask "how does the API handle errors?"
 ```
 "#;
                         let skill_path = ext_dir.join("SKILL.md");
@@ -1384,7 +1384,7 @@ searchgrep ask "how does the API handle errors?"
 
 const SKILL = `
 ---
-name: searchgrep
+name: sgrep
 description: A semantic grep-like search tool for your local files. Uses AI embeddings for natural language code search. Much better than grep/ripgrep for understanding code meaning.
 license: MIT
 ---
@@ -1395,21 +1395,21 @@ Whenever you need to search your local files semantically. Use this instead of g
 
 ## How to use this skill
 
-Use \`searchgrep\` to search your local files. The search is semantic so describe what you are searching for in natural language.
+Use \`sgrep\` to search your local files. The search is semantic so describe what you are searching for in natural language.
 
 ### Do
 
 \`\`\`bash
-searchgrep search "authentication middleware"  # search in the current directory
-searchgrep search "database connection pooling" src/  # search in src directory
-searchgrep search -m 20 "error handling patterns"  # get more results
-searchgrep ask "how does the payment system work?"  # ask a question about code
+sgrep search "authentication middleware"  # search in the current directory
+sgrep search "database connection pooling" src/  # search in src directory
+sgrep search -m 20 "error handling patterns"  # get more results
+sgrep ask "how does the payment system work?"  # ask a question about code
 \`\`\`
 
 ### Don't
 
 \`\`\`bash
-searchgrep search "foo"  # Too vague, use descriptive queries
+sgrep search "foo"  # Too vague, use descriptive queries
 \`\`\`
 
 ## Keywords
@@ -1427,12 +1427,12 @@ export default tool({
   async execute(args) {
     const cmd = args.a ? "ask" : "search";
     const pathArg = args.p ? args.p : ".";
-    const result = await Bun.$`searchgrep ${cmd} -m ${args.m} ${args.q} ${pathArg}`.text();
+    const result = await Bun.$`sgrep ${cmd} -m ${args.m} ${args.q} ${pathArg}`.text();
     return result.trim();
   },
 })"#;
 
-                        let skill_path = skill_dir.join("searchgrep.ts");
+                        let skill_path = skill_dir.join("sgrep.ts");
                         std::fs::write(&skill_path, skill_content)?;
 
                         println!(
@@ -1448,7 +1448,7 @@ export default tool({
             println!();
             println!(
                 "{}",
-                "Restart your AI tool to use the searchgrep skill.".yellow()
+                "Restart your AI tool to use the sgrep skill.".yellow()
             );
         }
         Some(Commands::Graph {

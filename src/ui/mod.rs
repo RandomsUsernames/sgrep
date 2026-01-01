@@ -1,4 +1,4 @@
-//! Beautiful terminal UI for searchgrep
+//! Beautiful terminal UI for sgrep
 //!
 //! A brutalist-meets-retro-futuristic aesthetic with:
 //! - Geometric box-drawing characters

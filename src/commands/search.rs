@@ -50,7 +50,7 @@ pub async fn run(options: SearchOptions) -> Result<()> {
             );
         } else {
             println!("{}", "No files indexed yet. Run:".yellow());
-            println!("  searchgrep watch [path]");
+            println!("  sgrep watch [path]");
         }
         return Ok(());
     }

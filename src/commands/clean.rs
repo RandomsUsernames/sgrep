@@ -34,19 +34,19 @@ pub async fn run(options: CleanOptions) -> Result<()> {
     }
 
     // Default: show help
-    println!("{}", "searchgrep clean".bold());
+    println!("{}", "sgrep clean".bold());
     println!();
     println!("Remove indexed data for privacy and storage management.");
     println!();
     println!("{}", "Usage:".bold());
-    println!("  searchgrep clean --list          List all indexes and their sizes");
-    println!("  searchgrep clean --all           Remove ALL indexes");
-    println!("  searchgrep clean --store <name>  Remove a specific index");
+    println!("  sgrep clean --list          List all indexes and their sizes");
+    println!("  sgrep clean --all           Remove ALL indexes");
+    println!("  sgrep clean --store <name>  Remove a specific index");
     println!();
     println!("{}", "Examples:".bold());
-    println!("  searchgrep clean --list");
-    println!("  searchgrep clean --store default");
-    println!("  searchgrep clean --all");
+    println!("  sgrep clean --list");
+    println!("  sgrep clean --store default");
+    println!("  sgrep clean --all");
     println!();
 
     list_indexes(&config_dir)?;

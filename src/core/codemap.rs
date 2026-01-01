@@ -116,7 +116,7 @@ impl CodeMap {
 
     /// Get map storage path
     pub fn map_path(root: &Path) -> PathBuf {
-        root.join(".searchgrep").join("map.json")
+        root.join(".sgrep").join("map.json")
     }
 
     /// Load existing map
@@ -133,7 +133,7 @@ impl CodeMap {
 
     /// Save map to disk
     pub fn save(&self, root: &Path) -> Result<()> {
-        let dir = root.join(".searchgrep");
+        let dir = root.join(".sgrep");
         fs::create_dir_all(&dir)?;
         let path = Self::map_path(root);
         let content = serde_json::to_string_pretty(self)?;

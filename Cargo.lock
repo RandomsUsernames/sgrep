@@ -2838,41 +2838,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "searchgrep"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "bincode",
- "candle-core",
- "candle-nn",
- "candle-transformers",
- "chrono",
- "clap",
- "colored",
- "dirs 5.0.1",
- "hex",
- "hf-hub",
- "ignore",
- "indicatif",
- "ndarray",
- "notify",
- "rayon",
- "regex",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
- "sha2",
- "terminal_size",
- "thiserror 1.0.69",
- "tokenizers",
- "tokio",
- "usearch",
- "walkdir",
- "which",
-]
-
-[[package]]
 name = "security-framework"
 version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2963,6 +2928,41 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "sgrep"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bincode",
+ "candle-core",
+ "candle-nn",
+ "candle-transformers",
+ "chrono",
+ "clap",
+ "colored",
+ "dirs 5.0.1",
+ "hex",
+ "hf-hub",
+ "ignore",
+ "indicatif",
+ "ndarray",
+ "notify",
+ "rayon",
+ "regex",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "sha2",
+ "terminal_size",
+ "thiserror 1.0.69",
+ "tokenizers",
+ "tokio",
+ "usearch",
+ "walkdir",
+ "which",
 ]
 
 [[package]]

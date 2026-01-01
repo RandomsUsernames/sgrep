@@ -31,12 +31,12 @@ pub async fn run(options: GraphOptions) -> Result<()> {
                 "{}",
                 serde_json::json!({
                     "error": "No index found",
-                    "hint": "Index files first with: searchgrep index ."
+                    "hint": "Index files first with: sgrep index ."
                 })
             );
         } else {
             println!("{}", "No index found.".yellow());
-            println!("Index files first with: {}", "searchgrep index .".cyan());
+            println!("Index files first with: {}", "sgrep index .".cyan());
         }
         return Ok(());
     }
@@ -88,12 +88,12 @@ fn show_overview(graph: &KnowledgeGraph, json: bool) -> Result<()> {
                 "{}",
                 serde_json::json!({
                     "error": "No files in knowledge graph",
-                    "hint": "Index files first with: searchgrep index ."
+                    "hint": "Index files first with: sgrep index ."
                 })
             );
         } else {
             println!("{}", "No files in knowledge graph.".yellow());
-            println!("Index files first with: {}", "searchgrep index .".cyan());
+            println!("Index files first with: {}", "sgrep index .".cyan());
         }
         return Ok(());
     }
