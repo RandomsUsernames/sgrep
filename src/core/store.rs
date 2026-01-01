@@ -21,6 +21,15 @@ pub struct FileChunk {
     pub embedding: Vec<f32>,
     #[serde(default)]
     pub token_embeddings: Option<Vec<Vec<f32>>>,
+    /// Symbol name (function name, class name, etc.)
+    #[serde(default)]
+    pub symbol_name: Option<String>,
+    /// Parent symbol name (e.g., class name for a method)
+    #[serde(default)]
+    pub parent_name: Option<String>,
+    /// Hierarchical path (e.g., "MyClass::my_method" or "module.Class.method")
+    #[serde(default)]
+    pub hierarchy_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

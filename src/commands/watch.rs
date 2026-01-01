@@ -170,6 +170,9 @@ pub async fn sync_files(path: &str, store_name: Option<&str>, speed_mode: SpeedM
                 language: file.language.clone(),
                 embedding: chunk_embeddings[i].clone(),
                 token_embeddings: None,
+                symbol_name: None,
+                parent_name: None,
+                hierarchy_path: None,
             });
         }
 

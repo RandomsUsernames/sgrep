@@ -86,17 +86,28 @@ struct UnifiedChunk {
     start_line: usize,
     end_line: usize,
     chunk_type: String,
-    name: Option<String>,
+    symbol_name: Option<String>,
+    parent_name: Option<String>,
+    hierarchy_path: Option<String>,
 }
 
 impl From<TSChunk> for UnifiedChunk {
     fn from(c: TSChunk) -> Self {
+        // Build hierarchy path from parent and symbol name
+        let hierarchy_path = match (&c.parent_name, &c.name) {
+            (Some(parent), Some(name)) => Some(format!("{}::{}", parent, name)),
+            (None, Some(name)) => Some(name.clone()),
+            _ => None,
+        };
+
         Self {
             content: c.content,
             start_line: c.start_line,
             end_line: c.end_line,
             chunk_type: c.chunk_type.as_str().to_string(),
-            name: c.name,
+            symbol_name: c.name,
+            parent_name: c.parent_name,
+            hierarchy_path,
         }
     }
 }
@@ -108,7 +119,9 @@ impl From<LegacyChunk> for UnifiedChunk {
             start_line: c.start_line,
             end_line: c.end_line,
             chunk_type: c.chunk_type.as_str().to_string(),
-            name: None,
+            symbol_name: None,
+            parent_name: None,
+            hierarchy_path: None,
         }
     }
 }
@@ -290,6 +303,9 @@ impl FastIndexer {
                     language: pf.file.language.clone(),
                     embedding: vec![], // Empty for BM25 mode
                     token_embeddings: None,
+                    symbol_name: chunk.symbol_name.clone(),
+                    parent_name: chunk.parent_name.clone(),
+                    hierarchy_path: chunk.hierarchy_path.clone(),
                 });
                 total_chunks += 1;
             }
@@ -400,6 +416,9 @@ impl FastIndexer {
                     language: language.clone(),
                     embedding,
                     token_embeddings: None,
+                    symbol_name: chunk.symbol_name.clone(),
+                    parent_name: chunk.parent_name.clone(),
+                    hierarchy_path: chunk.hierarchy_path.clone(),
                 });
             }
 
