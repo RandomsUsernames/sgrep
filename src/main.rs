@@ -361,6 +361,37 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+
+    /// Run background daemon for continuous file watching and indexing
+    #[command(alias = "d")]
+    Daemon {
+        /// Path to watch (defaults to current directory)
+        path: Option<String>,
+
+        /// Use alternative store name
+        #[arg(long)]
+        store: Option<String>,
+
+        /// Fast mode - BM25 only, instant indexing (no embeddings)
+        #[arg(long)]
+        fast: bool,
+
+        /// Balanced mode - BM25 + embeddings (default)
+        #[arg(long)]
+        balanced: bool,
+
+        /// Quality mode - best embeddings, slower
+        #[arg(long)]
+        quality: bool,
+
+        /// Debounce delay in milliseconds (default: 500)
+        #[arg(long, default_value = "500")]
+        debounce: u64,
+
+        /// Max delay before forced flush in seconds (default: 5)
+        #[arg(long, default_value = "5")]
+        max_delay: u64,
+    },
 }
 
 #[tokio::main]
@@ -756,9 +787,7 @@ async fn main() -> Result<()> {
                     if let Some(arr) =
                         config["experimental"]["modelContextProtocolServers"].as_array_mut()
                     {
-                        arr.retain(|v| {
-                            v.get("name").and_then(|n| n.as_str()) != Some("sgrep")
-                        });
+                        arr.retain(|v| v.get("name").and_then(|n| n.as_str()) != Some("sgrep"));
                         arr.push(continue_config);
                     }
 
@@ -1099,9 +1128,7 @@ async fn main() -> Result<()> {
                         config["experimental"]["modelContextProtocolServers"].as_array_mut()
                     {
                         let len_before = arr.len();
-                        arr.retain(|v| {
-                            v.get("name").and_then(|n| n.as_str()) != Some("sgrep")
-                        });
+                        arr.retain(|v| v.get("name").and_then(|n| n.as_str()) != Some("sgrep"));
                         arr.len() < len_before
                     } else {
                         false
@@ -1486,6 +1513,69 @@ export default tool({
                 json,
             })
             .await?;
+        }
+        Some(Commands::Daemon {
+            path,
+            store,
+            fast,
+            balanced: _,
+            quality,
+            debounce,
+            max_delay,
+        }) => {
+            use colored::Colorize;
+            use core::daemon::{Daemon, DaemonConfig, DebounceConfig};
+            use core::fast_indexer::IndexTier;
+            use std::time::Duration;
+
+            let watch_path = path.unwrap_or_else(|| ".".to_string());
+            let watch_path = std::fs::canonicalize(&watch_path)?;
+
+            // Determine index tier
+            let tier = if fast {
+                IndexTier::Fast
+            } else if quality {
+                IndexTier::Quality
+            } else {
+                IndexTier::Balanced
+            };
+
+            // Build debounce config
+            let debounce_config = DebounceConfig {
+                debounce_delay: Duration::from_millis(debounce),
+                max_delay: Duration::from_secs(max_delay),
+                ..Default::default()
+            };
+
+            // Build daemon config
+            let mut config = DaemonConfig::new(&watch_path)
+                .with_tier(tier)
+                .with_debounce(debounce_config);
+
+            if let Some(store_name) = store {
+                config = config.with_store(store_name);
+            }
+
+            println!(
+                "{} Starting daemon for {}",
+                "→".cyan(),
+                watch_path.display()
+            );
+            println!(
+                "   Mode: {}, Debounce: {}ms, Max delay: {}s",
+                match tier {
+                    IndexTier::Fast => "fast",
+                    IndexTier::Balanced => "balanced",
+                    IndexTier::Quality => "quality",
+                },
+                debounce,
+                max_delay
+            );
+            println!("   Press Ctrl+C to stop\n");
+
+            // Run daemon (blocking)
+            let daemon = Daemon::new(config);
+            daemon.run().await?;
         }
         None => {
             if let Some(pattern) = cli.pattern {

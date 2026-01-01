@@ -1,6 +1,7 @@
 pub mod chunker;
 pub mod codemap;
 pub mod config;
+pub mod daemon;
 pub mod embeddings;
 pub mod fast_indexer;
 pub mod git;
