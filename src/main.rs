@@ -362,8 +362,8 @@ enum Commands {
         json: bool,
     },
 
-    /// Run background daemon for continuous file watching and indexing
-    #[command(alias = "d")]
+    /// Watch files and keep index updated automatically
+    #[command(alias = "w2")]
     Daemon {
         /// Path to watch (defaults to current directory)
         path: Option<String>,
