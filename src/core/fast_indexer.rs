@@ -14,7 +14,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use crate::core::chunker::{Chunk, CodeChunker};
+use crate::core::chunker::{Chunk as LegacyChunk, CodeChunker};
 use crate::core::config::Config;
 use crate::core::embeddings::EmbeddingProvider;
 use crate::core::local_embeddings::SpeedMode;
@@ -22,6 +22,7 @@ use crate::core::scanner::{FileScanner, ScannedFile};
 use crate::core::store::{
     compute_file_hash, generate_chunk_id, FileChunk, IndexedFile, VectorStore,
 };
+use crate::core::treesitter_chunker::{detect_language, Chunk as TSChunk, TreeSitterChunker};
 
 /// Indexing tier/quality level
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -78,11 +79,45 @@ pub struct IndexResult {
     pub tier: IndexTier,
 }
 
+/// Unified chunk type for internal processing
+#[derive(Debug, Clone)]
+struct UnifiedChunk {
+    content: String,
+    start_line: usize,
+    end_line: usize,
+    chunk_type: String,
+    name: Option<String>,
+}
+
+impl From<TSChunk> for UnifiedChunk {
+    fn from(c: TSChunk) -> Self {
+        Self {
+            content: c.content,
+            start_line: c.start_line,
+            end_line: c.end_line,
+            chunk_type: c.chunk_type.as_str().to_string(),
+            name: c.name,
+        }
+    }
+}
+
+impl From<LegacyChunk> for UnifiedChunk {
+    fn from(c: LegacyChunk) -> Self {
+        Self {
+            content: c.content,
+            start_line: c.start_line,
+            end_line: c.end_line,
+            chunk_type: c.chunk_type.as_str().to_string(),
+            name: None,
+        }
+    }
+}
+
 /// Processed file ready for storage
 struct ProcessedFile {
     file: ScannedFile,
     hash: String,
-    chunks: Vec<Chunk>,
+    chunks: Vec<UnifiedChunk>,
 }
 
 /// Fast parallel indexer
@@ -158,14 +193,37 @@ impl FastIndexer {
             });
         }
 
-        // Phase 3: Parallel chunking
-        let chunker = CodeChunker::default();
+        // Phase 3: Parallel chunking with tree-sitter (fallback to regex)
         let processed_files: Vec<ProcessedFile> = files_to_process
             .into_par_iter()
             .filter(|f| f.content.len() <= self.config.max_file_size)
             .map(|file| {
                 let hash = compute_file_hash(&file.content);
-                let chunks = chunker.chunk(&file.content, file.language.as_deref());
+
+                // Try tree-sitter first, fall back to regex chunker
+                let language = file
+                    .language
+                    .as_deref()
+                    .or_else(|| detect_language(&file.path));
+
+                let chunks: Vec<UnifiedChunk> = {
+                    let mut ts_chunker = TreeSitterChunker::default();
+                    let ts_chunks = ts_chunker.chunk(&file.content, language);
+
+                    if !ts_chunks.is_empty() {
+                        // Tree-sitter succeeded
+                        ts_chunks.into_iter().map(UnifiedChunk::from).collect()
+                    } else {
+                        // Fall back to regex-based chunker
+                        let legacy_chunker = CodeChunker::default();
+                        legacy_chunker
+                            .chunk(&file.content, language)
+                            .into_iter()
+                            .map(UnifiedChunk::from)
+                            .collect()
+                    }
+                };
+
                 ProcessedFile { file, hash, chunks }
             })
             .filter(|pf| !pf.chunks.is_empty())
@@ -228,7 +286,7 @@ impl FastIndexer {
                     content: chunk.content.clone(),
                     start_line: chunk.start_line,
                     end_line: chunk.end_line,
-                    chunk_type: chunk.chunk_type.as_str().to_string(),
+                    chunk_type: chunk.chunk_type.clone(),
                     language: pf.file.language.clone(),
                     embedding: vec![], // Empty for BM25 mode
                     token_embeddings: None,
@@ -264,7 +322,7 @@ impl FastIndexer {
             EmbeddingProvider::with_speed_mode(self.app_config.clone(), speed_mode);
 
         // Collect all chunks with their metadata
-        let mut all_chunks: Vec<(String, String, Chunk, Option<String>)> = Vec::new(); // (file_path, hash, chunk, language)
+        let mut all_chunks: Vec<(String, String, UnifiedChunk, Option<String>)> = Vec::new(); // (file_path, hash, chunk, language)
         let mut file_chunk_ranges: HashMap<String, (String, Vec<usize>)> = HashMap::new(); // file_path -> (hash, chunk indices)
 
         for pf in &processed_files {
@@ -338,7 +396,7 @@ impl FastIndexer {
                     content: chunk.content.clone(),
                     start_line: chunk.start_line,
                     end_line: chunk.end_line,
-                    chunk_type: chunk.chunk_type.as_str().to_string(),
+                    chunk_type: chunk.chunk_type.clone(),
                     language: language.clone(),
                     embedding,
                     token_embeddings: None,

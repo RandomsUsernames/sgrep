@@ -58,6 +58,17 @@ chrono = { version = "0.4", features = ["serde"] }
 # Regex for code patterns
 regex = "1.10"
 
+# Tree-sitter for AST-based code chunking
+tree-sitter = "0.24"
+tree-sitter-rust = "0.23"
+tree-sitter-python = "0.23"
+tree-sitter-javascript = "0.23"
+tree-sitter-typescript = "0.23"
+tree-sitter-go = "0.23"
+tree-sitter-java = "0.23"
+tree-sitter-c = "0.23"
+tree-sitter-cpp = "0.23"
+
 # Parallel processing
 rayon = "1.10"
 

@@ -13,4 +13,5 @@ pub mod reranker;
 pub mod scanner;
 pub mod search;
 pub mod store;
+pub mod treesitter_chunker;
 pub mod vector_index;
