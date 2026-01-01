@@ -1,12 +1,12 @@
 [package]
-name = "sgrep"
+name = "searchgrep"
 version = "0.1.0"
 edition = "2021"
 description = "Semantic grep for the AI era - natural language code search"
 license = "MIT"
-authors = ["sgrep"]
-repository = "https://github.com/anthropics/sgrep"
-homepage = "https://github.com/anthropics/sgrep"
+authors = ["RandomsUsernames"]
+repository = "https://github.com/RandomsUsernames/sgrep"
+homepage = "https://github.com/RandomsUsernames/sgrep"
 keywords = ["search", "grep", "semantic", "ai", "code"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"

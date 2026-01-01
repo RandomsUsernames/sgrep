@@ -541,15 +541,9 @@ async fn main() -> Result<()> {
             use colored::Colorize;
             use std::process::Command;
 
-            // Known source location
-            let home = dirs::home_dir().context("Could not find home directory")?;
-            let known_path = home.join("extras/stuff/sgrep-rs");
-
             // Try to find project directory
-            let project_dir = if known_path.join("Cargo.toml").exists() {
-                known_path
-            } else {
-                // Try current directory
+            let project_dir = {
+                // Try current directory first
                 let cwd = std::env::current_dir()?;
                 if cwd.join("Cargo.toml").exists() {
                     cwd
@@ -569,8 +563,7 @@ async fn main() -> Result<()> {
                         }
                     }
                     found.ok_or_else(|| anyhow::anyhow!(
-                        "Could not find sgrep source. Expected at: {}\nOr run from the sgrep-rs directory.",
-                        known_path.display()
+                        "Could not find sgrep source. Run this command from the sgrep source directory."
                     ))?
                 }
             };
