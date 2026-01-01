@@ -1087,7 +1087,7 @@ async fn main() -> Result<()> {
                     "claude" => (home.join(".claude.json"), "claude"),
                     "cursor" => (home.join(".cursor/mcp.json"), "mcpServers"),
                     "windsurf" => (home.join(".codeium/windsurf/mcp_config.json"), "mcpServers"),
-                    "codex" => (home.join(".codex/mcp.json"), "mcpServers"),
+                    "codex" => (home.join(".codex/config.toml"), "codex_toml"),
                     "opencode" => (home.join(".opencode/mcp.json"), "mcpServers"),
                     "zed" => (home.join(".config/zed/settings.json"), "context_servers"),
                     "continue" => (home.join(".continue/config.json"), "experimental.modelContextProtocolServers"),
@@ -1106,6 +1106,45 @@ async fn main() -> Result<()> {
                     continue;
                 }
 
+                // Handle TOML-based configs (Codex) separately
+                if config_type == "codex_toml" {
+                    let content = std::fs::read_to_string(&config_path)?;
+                    if content.contains("[mcp_servers.sgrep]") {
+                        // Remove the [mcp_servers.sgrep] section and its contents
+                        let mut lines: Vec<&str> = content.lines().collect();
+                        let mut i = 0;
+                        let mut in_sgrep_section = false;
+                        let mut to_remove = Vec::new();
+
+                        while i < lines.len() {
+                            let line = lines[i].trim();
+                            if line == "[mcp_servers.sgrep]" {
+                                in_sgrep_section = true;
+                                to_remove.push(i);
+                            } else if in_sgrep_section {
+                                if line.starts_with('[') {
+                                    // New section started
+                                    in_sgrep_section = false;
+                                } else {
+                                    to_remove.push(i);
+                                }
+                            }
+                            i += 1;
+                        }
+
+                        // Remove lines in reverse order to preserve indices
+                        for idx in to_remove.into_iter().rev() {
+                            lines.remove(idx);
+                        }
+
+                        let new_content = lines.join("\n").trim().to_string() + "\n";
+                        std::fs::write(&config_path, new_content)?;
+                        println!("{} Removed sgrep from {}", "✓".green(), tool_name);
+                    }
+                    continue;
+                }
+
+                // JSON-based configs
                 let content = std::fs::read_to_string(&config_path)?;
                 let mut config: serde_json::Value =
                     serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
