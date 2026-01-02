@@ -233,3 +233,42 @@ Contributions welcome! Please open an issue or PR.
 ## License
 
 [MIT](LICENSE)
+
+## Troubleshooting
+
+### MCP "Transport closed" or "Client is not connected" Errors
+
+Some MCP clients (Codex CLI, Gemini CLI) have stdio transport issues with direct Rust binaries. Use the included Node.js wrapper:
+
+**Codex CLI** (`~/.codex/config.toml`):
+```toml
+[mcp_servers.searchgrep]
+command = "node"
+args = ["/path/to/scripts/mcp-wrapper.js"]
+startup_timeout_sec = 60
+```
+
+**Gemini CLI** (`~/.gemini/settings.json`):
+```json
+{
+  "mcpServers": {
+    "searchgrep": {
+      "command": "node",
+      "args": ["/path/to/scripts/mcp-wrapper.js"]
+    }
+  }
+}
+```
+
+You can also copy the wrapper to a convenient location:
+```bash
+cp scripts/mcp-wrapper.js ~/.local/bin/
+# Then use: node ~/.local/bin/mcp-wrapper.js
+```
+
+### MCP Server Timeout
+
+For slow-starting servers, increase the timeout in your client config:
+
+**Codex**: Add `startup_timeout_sec = 60` to the server config  
+**Claude Code**: Timeouts are usually sufficient by default
